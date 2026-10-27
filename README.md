@@ -5,6 +5,49 @@
 
 ---
 
+## Cara Menjalankan Aplikasi (Quick Start)
+
+### 1. Prasyarat
+- **Node.js** (v18+ atau v20+)
+- **Windows OS** (dukungan bawaan Windows .NET Framework untuk native injector)
+
+### 2. Instalasi Dependensi
+Jalankan di PowerShell:
+```powershell
+npm install
+```
+
+### 3. Kompilasi Native Input Injector (Opsional, sudah terkompilasi bawaan)
+Jika ingin mengompilasi ulang binary native C# input engine:
+```powershell
+npm run build:injector
+```
+
+### 4. Menjalankan Aplikasi
+Mulai aplikasi preview interaktif:
+```powershell
+npm start
+```
+
+---
+
+## Panduan Penggunaan di Jendela Aplikasi
+
+1. **Memilih Layar**: Gunakan dropdown pada header atas untuk memilih monitor target yang ingin dipantau.
+2. **Memindahkan Jendela (Draggable)**: Arahkan kursor ke area titlebar/header atas, lalu klik dan drag jendela ke posisi yang diinginkan di layar Anda.
+3. **Mengubah Ukuran (Resizable)**: Drag tepi atau sudut jendela untuk memperbesar/memperkecil preview. Kanvas akan otomatis menyesuaikan rasio aspek monitor target.
+4. **Interaksi Remote**:
+   - **Klik Kiri**: Klik kiri langsung pada elemen preview di dalam video.
+   - **Klik Kanan**: Klik kanan untuk memunculkan Context Menu di layar target.
+   - **Double Click**: Double click cepat pada preview.
+   - **Drag & Drop**: Tekan dan tahan tombol mouse sambil menggeser cursor di area preview.
+   - **Scroll Wheel**: Putar roda mouse ke atas/bawah di atas kanvas preview.
+5. **Pin & Opacity**:
+   - Tombol **📌 Pin**: Mengaktifkan atau mematikan mode *Always-on-Top*.
+   - Tombol **🌓 Opacity**: Mengubah tingkat transparansi jendela (100% / 85% / 65%).
+
+---
+
 ## Overview
 
 **Show Second Screens** adalah aplikasi desktop modern yang memungkinkan pengguna melihat preview real-time dari layar target (secondary display / virtual display / monitor eksternal) dalam sebuah floating window. 
@@ -39,31 +82,28 @@ Proyek ini dibangun menggunakan arsitektur modular yang ketat:
 
 ```text
 show-second-screens/
+├── .gitignore
 ├── AGENTS.md                 # Standar operasional wajib AI Agent
 ├── CHANGELOG.md              # Log riwayat perubahan versi
-├── README.md                 # Dokumentasi proyek
+├── README.md                 # Dokumentasi proyek & panduan running
 ├── package.json              # Versi & manifest dependensi
-├── tsconfig.json             # Konfigurasi TypeScript
+├── bin/
+│   └── injector.exe          # Native Win32 input injection engine
 ├── src/
 │   ├── main/                 # Main Process (Lifecycle, Window, OS Capture, Input)
-│   │   ├── index.ts          # Application entrypoint
+│   │   ├── index.cjs         # Application entrypoint
 │   │   ├── window/           # Window Manager (Draggable, Resizable, Frameless)
 │   │   ├── capture/          # Screen Capture & Monitor Enumeration
-│   │   ├── input/            # Native Input Injection (Mouse/Keyboard events)
+│   │   ├── input/            # Native Input Injection (C# source & daemon manager)
 │   │   └── ipc/              # IPC Communication Bridge
 │   ├── preload/              # Preload Layer (Context Isolation Bridge)
-│   │   └── index.ts          # Safe Exposed APIs
+│   │   └── index.cjs         # Safe Exposed APIs
 │   ├── renderer/             # Frontend UI (Preview Canvas, HUD, Toolbar)
-│   │   ├── index.html
-│   │   ├── src/
-│   │   │   ├── main.tsx
-│   │   │   ├── components/   # UI Components (PreviewCanvas, Toolbar, DisplaySelector)
-│   │   │   ├── hooks/        # Coordinate Mapping & Mouse Interaction Hooks
-│   │   │   ├── services/     # Stream Renderer & IPC Client
-│   │   │   └── styles/       # Modern Dark UI Styles
+│   │   └── index.html        # Video Stream Viewport & Coordinate Mapper
 │   └── shared/               # Shared Interfaces, DTOs, dan Constants
 │       ├── types/            # Tipe Display, InputEvent, WindowConfig
-│       └── constants/        # Saluran IPC & default configs
+│       ├── constants/        # Saluran IPC & default configs
+│       └── utils/            # Coordinate Mapper Engine
 ```
 
 ---

@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Show Second Screens</title>
+  <style>
+    :root {
+      --bg-base: #090a0f;
+      --bg-panel: rgba(18, 20, 29, 0.88);
+      --bg-panel-border: rgba(255, 255, 255, 0.08);
+      --accent: #22c55e;
+      --accent-hover: #16a34a;
+      --accent-cyan: #06b6d4;
+      --text-main: #f1f5f9;
+      --text-muted: #94a3b8;
+      --danger: #ef4444;
+      --header-height: 38px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+
+    body {
+      background-color: var(--bg-base);
+      color: var(--text-main);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      font-size: 13px;
+      overflow: hidden;
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Sleek Draggable Header */
+    .titlebar {
+      height: var(--header-height);
+      background: var(--bg-panel);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--bg-panel-border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 10px;
+      -webkit-app-region: drag;
+      z-index: 1000;
+      transition: opacity 0.25s ease;
+    }
+
+    .titlebar.dimmed {
+      opacity: 0.15;
+    }
+
+    .titlebar:hover {
+      opacity: 1 !important;
+    }
+
+    .titlebar-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      -webkit-app-region: no-drag;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-weight: 600;
+      font-size: 12px;
+      letter-spacing: 0.5px;
+      color: var(--text-main);
+    }
+
+    .brand-dot {
+      width: 7px;
+      height: 7px;
+      background: var(--accent);
+      border-radius: 50%;
+      box-shadow: 0 0 8px var(--accent);
+    }
+
+    /* Screen Select Dropdown */
+    .screen-select {
+      background: #1e2230;
+      color: var(--text-main);
+      border: 1px solid var(--bg-panel-border);
+      border-radius: 4px;
+      padding: 3px 8px;
+      font-size: 11px;
+      outline: none;
+      cursor: pointer;
+    }
+
+    .titlebar-right {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      -webkit-app-region: no-drag;
+    }
+
+    /* Action Buttons */
+    .btn {
+      background: #1e2230;
+      border: 1px solid var(--bg-panel-border);
+      color: var(--text-muted);
+      border-radius: 4px;
+      padding: 4px 8px;
+      font-size: 11px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      transition: all 0.15s ease;
+    }
+
+    .btn:hover {
+      color: var(--text-main);
+      background: #2a3044;
+      border-color: rgba(255, 255, 255, 0.15);
+    }
+
+    .btn.active {
+      color: #fff;
+      background: rgba(34, 197, 94, 0.2);
+      border-color: var(--accent);
+    }
+
+    .btn-close:hover {
+      background: var(--danger);
+      color: #fff;
+      border-color: var(--danger);
+    }
+
+    /* Telemetry Badge */
+    .telemetry {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 10px;
+      color: var(--accent-cyan);
+      background: rgba(6, 182, 212, 0.1);
+      border: 1px solid rgba(6, 182, 212, 0.2);
+      padding: 2px 6px;
+      border-radius: 3px;
+    }
+
+    /* Preview Viewport Container */
+    .viewport-container {
+      flex: 1;
+      position: relative;
+      background: #000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      cursor: crosshair;
+      -webkit-app-region: no-drag;
+    }
+
+    video.screen-video {
+      max-width: 100%;
+      max-height: 100%;
+      width: auto;
+      height: auto;
+      object-fit: contain;
+      pointer-events: auto;
+      display: block;
+    }
+
+    /* Empty/Connecting state */
+    .status-placeholder {
+      position: absolute;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      color: var(--text-muted);
+      pointer-events: none;
+    }
+
+    .spinner {
+      width: 24px;
+      height: 24px;
+      border: 2px solid rgba(255, 255, 255, 0.1);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Remote Cursor Indicator Ring */
+    .cursor-marker {
+      position: absolute;
+      width: 14px;
+      height: 14px;
+      border: 2px solid var(--accent);
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+      transition: transform 0.05s ease-out;
+      opacity: 0.75;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <!-- Movable & Sleek Titlebar Header -->
+  <header class="titlebar" id="titlebar">
+    <div class="titlebar-left">
+      <div class="brand">
+        <span class="brand-dot"></span>
+        <span>SHOW SCREEN</span>
+      </div>
+      <select class="screen-select" id="screenSelect" title="Select Target Monitor">
+        <option value="">Detecting displays...</option>
+      </select>
+      <div class="telemetry" id="fpsDisplay">FPS: --</div>
+      <div class="telemetry" id="coordDisplay">X: 0 Y: 0</div>
+    </div>
+
+    <div class="titlebar-right">
+      <button class="btn active" id="btnPin" title="Toggle Always on Top">📌 Pin</button>
+      <button class="btn" id="btnOpacity" title="Toggle Window Opacity">🌓 100%</button>
+      <button class="btn" id="btnMinimize" title="Minimize">−</button>
+      <button class="btn" id="btnMaximize" title="Maximize">□</button>
+      <button class="btn btn-close" id="btnClose" title="Close Window">✕</button>
+    </div>
+  </header>
+
+  <!-- Interactive Screen Mirror Viewport -->
+  <main class="viewport-container" id="viewportContainer">
+    <div class="status-placeholder" id="placeholder">
+      <div class="spinner"></div>
+      <span id="placeholderText">Initializing screen capture...</span>
+    </div>
+
+    <video id="screenVideo" class="screen-video" autoplay playsinline muted></video>
+    <div id="cursorMarker" class="cursor-marker"></div>
+  </main>
+
+  <script>
+    // State
+    let currentDisplays = [];
+    let activeDisplay = null;
+    let currentStream = null;
+    let isAlwaysOnTop = true;
+    let opacityLevels = [1.0, 0.85, 0.65];
+    let opacityIndex = 0;
+    let lastFrameTime = performance.now();
+    let frameCount = 0;
+    let fps = 0;
+
+    // Elements
+    const titlebar = document.getElementById('titlebar');
+    const screenSelect = document.getElementById('screenSelect');
+    const screenVideo = document.getElementById('screenVideo');
+    const viewportContainer = document.getElementById('viewportContainer');
+    const placeholder = document.getElementById('placeholder');
+    const placeholderText = document.getElementById('placeholderText');
+    const fpsDisplay = document.getElementById('fpsDisplay');
+    const coordDisplay = document.getElementById('coordDisplay');
+    const cursorMarker = document.getElementById('cursorMarker');
+    const btnPin = document.getElementById('btnPin');
+    const btnOpacity = document.getElementById('btnOpacity');
+    const btnMinimize = document.getElementById('btnMinimize');
+    const btnMaximize = document.getElementById('btnMaximize');
+    const btnClose = document.getElementById('btnClose');
+
+    // Titlebar Auto-dim on idle mouse
+    let dimTimeout;
+    function resetDimTimer() {
+      titlebar.classList.remove('dimmed');
+      clearTimeout(dimTimeout);
+      dimTimeout = setTimeout(() => {
+        titlebar.classList.add('dimmed');
+      }, 3500);
+    }
+    window.addEventListener('mousemove', resetDimTimer);
+    resetDimTimer();
+
+    // Window Controls
+    btnPin.addEventListener('click', () => {
+      isAlwaysOnTop = !isAlwaysOnTop;
+      window.electronAPI.setAlwaysOnTop(isAlwaysOnTop);
+      btnPin.classList.toggle('active', isAlwaysOnTop);
+    });
+
+    btnOpacity.addEventListener('click', () => {
+      opacityIndex = (opacityIndex + 1) % opacityLevels.length;
+      const op = opacityLevels[opacityIndex];
+      window.electronAPI.setOpacity(op);
+      btnOpacity.textContent = `🌓 ${Math.round(op * 100)}%`;
+    });
+
+    btnMinimize.addEventListener('click', () => window.electronAPI.minimizeWindow());
+    btnMaximize.addEventListener('click', () => window.electronAPI.maximizeWindow());
+    btnClose.addEventListener('click', () => window.electronAPI.closeWindow());
+
+    // Coordinate Mapping Math Engine
+    function calculateTargetCoordinates(e) {
+      if (!activeDisplay) return null;
+
+      const rect = screenVideo.getBoundingClientRect();
+      const localX = e.clientX - rect.left;
+      const localY = e.clientY - rect.top;
+
+      const videoWidth = screenVideo.clientWidth;
+      const videoHeight = screenVideo.clientHeight;
+
+      if (videoWidth <= 0 || videoHeight <= 0) return null;
+
+      // Check if click is inside video bounds
+      if (localX < 0 || localX > videoWidth || localY < 0 || localY > videoHeight) {
+        return null;
+      }
+
+      const normX = localX / videoWidth;
+      const normY = localY / videoHeight;
+
+      const targetBounds = activeDisplay.bounds;
+      const targetX = Math.round(targetBounds.x + normX * targetBounds.width);
+      const targetY = Math.round(targetBounds.y + normY * targetBounds.height);
+
+      return { targetX, targetY, normX, normY };
+    }
+
+    // Interactive Input Simulation Listener on Video Preview
+    let isMouseDown = false;
+    let throttleTimeout = null;
+
+    screenVideo.addEventListener('mousemove', (e) => {
+      const coords = calculateTargetCoordinates(e);
+      if (!coords) return;
+
+      coordDisplay.textContent = `X: ${coords.targetX} Y: ${coords.targetY}`;
+      cursorMarker.style.display = 'block';
+      cursorMarker.style.left = `${e.clientX}px`;
+      cursorMarker.style.top = `${e.clientY}px`;
+
+      if (!throttleTimeout) {
+        throttleTimeout = setTimeout(() => {
+          throttleTimeout = null;
+          window.electronAPI.sendInput({
+            type: 'mousemove',
+            x: coords.targetX,
+            y: coords.targetY,
+          });
+        }, 16); // ~60fps throttle for smooth cursor without IPC congestion
+      }
+    });
+
+    screenVideo.addEventListener('mouseleave', () => {
+      cursorMarker.style.display = 'none';
+      if (isMouseDown) {
+        isMouseDown = false;
+        if (activeDisplay) {
+          window.electronAPI.sendInput({ type: 'mouseup', button: 'left', x: 0, y: 0 });
+        }
+      }
+    });
+
+    screenVideo.addEventListener('mousedown', (e) => {
+      e.preventDefault();
+      const coords = calculateTargetCoordinates(e);
+      if (!coords) return;
+
+      isMouseDown = true;
+      const button = e.button === 2 ? 'right' : e.button === 1 ? 'middle' : 'left';
+      window.electronAPI.sendInput({
+        type: 'mousedown',
+        button: button,
+        x: coords.targetX,
+        y: coords.targetY,
+      });
+    });
+
+    screenVideo.addEventListener('mouseup', (e) => {
+      e.preventDefault();
+      const coords = calculateTargetCoordinates(e);
+      if (!coords) return;
+
+      isMouseDown = false;
+      const button = e.button === 2 ? 'right' : e.button === 1 ? 'middle' : 'left';
+      window.electronAPI.sendInput({
+        type: 'mouseup',
+        button: button,
+        x: coords.targetX,
+        y: coords.targetY,
+      });
+    });
+
+    screenVideo.addEventListener('click', (e) => {
+      e.preventDefault();
+      const coords = calculateTargetCoordinates(e);
+      if (!coords) return;
+
+      window.electronAPI.sendInput({
+        type: 'click',
+        button: 'left',
+        x: coords.targetX,
+        y: coords.targetY,
+      });
+    });
+
+    screenVideo.addEventListener('dblclick', (e) => {
+      e.preventDefault();
+      const coords = calculateTargetCoordinates(e);
+      if (!coords) return;
+
+      window.electronAPI.sendInput({
+        type: 'dblclick',
+        x: coords.targetX,
+        y: coords.targetY,
+      });
+    });
+
+    screenVideo.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+      const coords = calculateTargetCoordinates(e);
+      if (!coords) return;
+
+      window.electronAPI.sendInput({
+        type: 'click',
+        button: 'right',
+        x: coords.targetX,
+        y: coords.targetY,
+      });
+    });
+
+    screenVideo.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      const coords = calculateTargetCoordinates(e);
+      if (!coords) return;
+
+      window.electronAPI.sendInput({
+        type: 'wheel',
+        deltaY: e.deltaY,
+        x: coords.targetX,
+        y: coords.targetY,
+      });
+    }, { passive: false });
+
+    // Stream Setup & Display Switching
+    async function switchDisplay(display) {
+      if (!display || !display.sourceId) return;
+
+      activeDisplay = display;
+      placeholder.style.display = 'flex';
+      placeholderText.textContent = `Connecting to ${display.name}...`;
+
+      if (currentStream) {
+        currentStream.getTracks().forEach((track) => track.stop());
+        currentStream = null;
+      }
+
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          audio: false,
+          video: {
+            mandatory: {
+              chromeMediaSource: 'desktop',
+              chromeMediaSourceId: display.sourceId,
+              minFrameRate: 30,
+              maxFrameRate: 60,
+            },
+          },
+        });
+
+        currentStream = stream;
+        screenVideo.srcObject = stream;
+        screenVideo.onloadedmetadata = () => {
+          screenVideo.play();
+          placeholder.style.display = 'none';
+        };
+      } catch (err) {
+        console.error('Error starting screen stream:', err);
+        placeholderText.textContent = `Failed to stream ${display.name}: ${err.message}`;
+      }
+    }
+
+    // Display Enumeration
+    async function loadDisplays() {
+      try {
+        currentDisplays = await window.electronAPI.getDisplays();
+        screenSelect.innerHTML = '';
+
+        if (!currentDisplays || currentDisplays.length === 0) {
+          screenSelect.innerHTML = '<option value="">No displays found</option>';
+          placeholderText.textContent = 'No active monitors detected.';
+          return;
+        }
+
+        currentDisplays.forEach((disp, idx) => {
+          const opt = document.createElement('option');
+          opt.value = disp.id;
+          opt.textContent = `${disp.name} (${disp.bounds.width}x${disp.bounds.height})`;
+          screenSelect.appendChild(opt);
+        });
+
+        // Default to secondary display if available, else primary
+        const secondary = currentDisplays.find((d) => !d.isPrimary);
+        const target = secondary || currentDisplays[0];
+        screenSelect.value = target.id;
+        switchDisplay(target);
+      } catch (err) {
+        console.error('Error loading displays:', err);
+      }
+    }
+
+    screenSelect.addEventListener('change', () => {
+      const selected = currentDisplays.find((d) => d.id === screenSelect.value);
+      if (selected) {
+        switchDisplay(selected);
+      }
+    });
+
+    // FPS Telemetry Counter
+    function updateTelemetry() {
+      frameCount++;
+      const now = performance.now();
+      const elapsed = now - lastFrameTime;
+      if (elapsed >= 1000) {
+        fps = Math.round((frameCount * 1000) / elapsed);
+        fpsDisplay.textContent = `FPS: ${fps}`;
+        frameCount = 0;
+        lastFrameTime = now;
+      }
+      requestAnimationFrame(updateTelemetry);
+    }
+    requestAnimationFrame(updateTelemetry);
+
+    // Initial load
+    loadDisplays();
+  </script>
+</body>
+</html>

@@ -10,13 +10,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.1.0] - 2026-10-27
 
 ### Added
-- Created comprehensive `AGENTS.md` specifying:
-  - Strict modular coding and Single Responsibility Principle (SRP).
-  - Clean skeleton architecture ("skeleton rapi") with clear separation of Main, Preload, Renderer, and Shared modules.
-  - Hard limit of 1000 lines maximum per file with refactoring triggers at 700–800 lines.
-  - Mandatory Git commit on every change using Conventional Commits.
-  - Automated versioning, CHANGELOG, and README synchronization rules.
-  - Target screen previewing, remote input coordinate mapping formula, and draggable/resizable window controls.
-  - Antislop & modern design standards integration.
-- Initialized Git repository with clean `.gitignore`.
-- Created foundational `package.json` (v0.1.0), `README.md`, and modular skeleton directory contracts.
+- Complete functional Electron application for real-time target display mirroring and interactive remote control.
+- Native Win32 input injection engine in C# (`src/main/input/injector.cs` -> `bin/injector.exe`) supporting ultra-low latency mouse moves, clicks, double clicks, right clicks, and scroll wheel events.
+- Modular Main Process architecture:
+  - `DisplayService`: Display enumeration matching `screen.getAllDisplays()` and `desktopCapturer`.
+  - `InputService`: Daemon process manager communicating over stdin with `bin/injector.exe`.
+  - `WindowManager`: Frameless, draggable, resizable floating window with always-on-top and opacity controls.
+  - `IpcHandlers`: Clean IPC contract bridge.
+- Secure Preload script exposing `window.electronAPI`.
+- Interactive Renderer Viewport:
+  - Sleek modern dark UI with auto-dimming header.
+  - 60 FPS video stream mirror using `navigator.mediaDevices.getUserMedia`.
+  - 1:1 mathematical coordinate translation mapping viewport clicks to physical monitor pixels.
+  - Real-time telemetry (FPS counter, target display coordinates).
+- Created comprehensive `AGENTS.md`, `README.md`, `.gitignore`, and shared contracts.
