@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.1.5] - 2026-10-27
+
+### Fixed
+- Fixed window positioning on multi-monitor setups: automatically detects the active display nearest to the user's cursor (`screen.getDisplayNearestPoint`) and centers the window directly in the user's view instead of behind background windows on secondary screens.
+- Enhanced `scripts/start.cjs` with immediate terminal startup feedback (`Starting Show Second Screens...`) while filtering out repeating WebRTC C++ warnings.
+- Added topmost z-index level (`screen-saver`) and explicit focus/bring-to-top calls.
+
 ## [0.1.4] - 2026-10-27
 
 ### Fixed

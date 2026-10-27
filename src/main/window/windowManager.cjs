@@ -1,4 +1,4 @@
-const { BrowserWindow } = require('electron');
+const { BrowserWindow, screen } = require('electron');
 const path = require('path');
 
 /**
@@ -10,18 +10,29 @@ class WindowManager {
   }
 
   createWindow() {
+    // Detect the monitor where the user's cursor currently resides
+    const cursorPos = screen.getCursorScreenPoint();
+    const activeDisplay = screen.getDisplayNearestPoint(cursorPos);
+    const { x, y, width, height } = activeDisplay.bounds;
+
+    const winWidth = Math.min(1024, Math.round(width * 0.85));
+    const winHeight = Math.min(640, Math.round(height * 0.85));
+    const winX = Math.round(x + (width - winWidth) / 2);
+    const winY = Math.round(y + (height - winHeight) / 2);
+
     this.mainWindow = new BrowserWindow({
       title: 'Show Second Screens - Target Preview & Remote',
-      width: 1024,
-      height: 640,
+      x: winX,
+      y: winY,
+      width: winWidth,
+      height: winHeight,
       minWidth: 420,
       minHeight: 280,
-      show: true, // Show immediately!
-      frame: true, // Native title bar & borders
+      show: true,
+      frame: true, // Native title bar & controls
       autoHideMenuBar: true,
       backgroundColor: '#090a0f',
       alwaysOnTop: true, // Floating mirror window
-      center: true, // Center on screen
       webPreferences: {
         preload: path.join(__dirname, '../../preload/index.cjs'),
         nodeIntegration: false,
@@ -35,6 +46,8 @@ class WindowManager {
 
     this.mainWindow.show();
     this.mainWindow.focus();
+    this.mainWindow.moveTop();
+    this.mainWindow.setAlwaysOnTop(true, 'screen-saver');
 
     this.mainWindow.on('closed', () => {
       this.mainWindow = null;
@@ -49,7 +62,7 @@ class WindowManager {
 
   setAlwaysOnTop(isAlwaysOnTop) {
     if (this.mainWindow) {
-      this.mainWindow.setAlwaysOnTop(isAlwaysOnTop);
+      this.mainWindow.setAlwaysOnTop(isAlwaysOnTop, 'screen-saver');
     }
   }
 

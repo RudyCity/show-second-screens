@@ -20,7 +20,13 @@ app.whenReady().then(() => {
   });
 
   registerIpcHandlers({ displayService, inputService, windowManager });
-  windowManager.createWindow();
+  const win = windowManager.createWindow();
+
+  if (win) {
+    const bounds = win.getBounds();
+    console.log(`✅ Show Second Screens is running! Window active at (${bounds.x}, ${bounds.y}) [${bounds.width}x${bounds.height}]`);
+    console.log('💡 Press Ctrl+C in this terminal to exit.');
+  }
 
   app.on('activate', () => {
     if (!windowManager.getWindow()) {
