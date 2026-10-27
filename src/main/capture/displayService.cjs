@@ -18,7 +18,7 @@ class DisplayService {
     try {
       sources = await desktopCapturer.getSources({
         types: ['screen'],
-        thumbnailSize: { width: 320, height: 180 },
+        thumbnailSize: { width: 0, height: 0 }, // Skip heavy thumbnail capture to avoid SetThreadDesktop conflicts
         fetchWindowIcons: false,
       });
     } catch (err) {

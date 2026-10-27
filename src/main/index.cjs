@@ -4,6 +4,10 @@ const { DisplayService } = require('./capture/displayService.cjs');
 const { InputService } = require('./input/inputService.cjs');
 const { registerIpcHandlers } = require('./ipc/ipcHandlers.cjs');
 
+// Configure Chromium flags to suppress non-fatal WebRTC capture logs
+app.commandLine.appendSwitch('log-level', '3'); // Suppress non-fatal INFO/WARNING/ERROR logs from Chromium WebRTC
+app.commandLine.appendSwitch('disable-features', 'CalculateNativeWinOcclusion');
+
 // Application Services
 const windowManager = new WindowManager();
 const displayService = new DisplayService();

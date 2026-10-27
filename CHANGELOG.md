@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.1.1] - 2026-10-27
+
+### Fixed
+- Fixed noisy Chromium WebRTC desktop capturer logs (`desktop.cc(66) SetThreadDesktop: 170` and `mouse_cursor_monitor_win.cc(104) Error = 5`):
+  - Configured `thumbnailSize: { width: 0, height: 0 }` during display enumeration to avoid redundant desktop screenshot capture loops.
+  - Added `{ cursor: 'never' }` optional constraint in `getUserMedia` stream since cursors are rendered seamlessly by the app.
+  - Set Chromium log-level switch (`log-level: 3`) to suppress non-fatal internal WebRTC notices.
+
 ## [0.1.0] - 2026-10-27
 
 ### Added
