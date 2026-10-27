@@ -1,0 +1,24 @@
+{
+  "name": "show-second-screens",
+  "version": "0.1.0",
+  "description": "Interactive real-time preview and remote control window for target displays with accurate coordinate mapping, moving, and resizing.",
+  "main": "dist-electron/main/index.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc ; vite build",
+    "lint": "eslint . --ext .ts,.tsx",
+    "format": "prettier --write ."
+  },
+  "keywords": [
+    "screen-mirror",
+    "second-screen",
+    "remote-click",
+    "display-preview",
+    "pip-window",
+    "electron",
+    "typescript"
+  ],
+  "author": "USER",
+  "license": "MIT",
+  "type": "module"
+}
