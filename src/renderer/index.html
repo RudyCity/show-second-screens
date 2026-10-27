@@ -226,6 +226,7 @@
     </div>
 
     <div class="titlebar-right">
+      <button class="btn active" id="btnMode" title="Toggle Cursor Mode: Tetap di Sini (Ghost) vs Pindah Layar (Direct)">🎯 Tetap di Sini</button>
       <button class="btn active" id="btnPin" title="Toggle Always on Top">📌 Always On Top</button>
       <button class="btn" id="btnOpacity" title="Toggle Window Opacity">🌓 100%</button>
     </div>
@@ -248,6 +249,7 @@
     let activeDisplay = null;
     let currentStream = null;
     let isAlwaysOnTop = true;
+    let cursorMode = 'ghost'; // 'ghost' = cursor stays 100% on current desktop! 'direct' = cursor moves to target display
     let opacityLevels = [1.0, 0.85, 0.65];
     let opacityIndex = 0;
     let lastFrameTime = performance.now();
@@ -264,6 +266,7 @@
     const fpsDisplay = document.getElementById('fpsDisplay');
     const coordDisplay = document.getElementById('coordDisplay');
     const cursorMarker = document.getElementById('cursorMarker');
+    const btnMode = document.getElementById('btnMode');
     const btnPin = document.getElementById('btnPin');
     const btnOpacity = document.getElementById('btnOpacity');
 
@@ -278,6 +281,13 @@
     }
     window.addEventListener('mousemove', resetDimTimer);
     resetDimTimer();
+
+    // Mode Toggle (Ghost Cursor vs Direct Warp)
+    btnMode.addEventListener('click', () => {
+      cursorMode = cursorMode === 'ghost' ? 'direct' : 'ghost';
+      btnMode.textContent = cursorMode === 'ghost' ? '🎯 Tetap di Sini' : '🚀 Pindah Layar';
+      btnMode.classList.toggle('active', cursorMode === 'ghost');
+    });
 
     // Window Controls
     btnPin.addEventListener('click', () => {
@@ -334,6 +344,20 @@
       cursorMarker.style.left = `${e.clientX}px`;
       cursorMarker.style.top = `${e.clientY}px`;
 
+      // In Ghost mode: cursor stays on the current desktop during hover!
+      if (cursorMode === 'ghost') {
+        if (isMouseDown) {
+          window.electronAPI.sendInput({
+            type: 'drag',
+            x: coords.targetX,
+            y: coords.targetY,
+            mode: 'ghost',
+          });
+        }
+        return;
+      }
+
+      // In Direct mode: warp cursor to target screen
       if (!throttleTimeout) {
         throttleTimeout = setTimeout(() => {
           throttleTimeout = null;
@@ -341,8 +365,9 @@
             type: 'mousemove',
             x: coords.targetX,
             y: coords.targetY,
+            mode: 'direct',
           });
-        }, 16); // ~60fps throttle for smooth cursor without IPC congestion
+        }, 16);
       }
     });
 
@@ -351,7 +376,7 @@
       if (isMouseDown) {
         isMouseDown = false;
         if (activeDisplay) {
-          window.electronAPI.sendInput({ type: 'mouseup', button: 'left', x: 0, y: 0 });
+          window.electronAPI.sendInput({ type: 'mouseup', button: 'left', x: 0, y: 0, mode: cursorMode });
         }
       }
     });
@@ -368,6 +393,7 @@
         button: button,
         x: coords.targetX,
         y: coords.targetY,
+        mode: cursorMode,
       });
     });
 
@@ -383,6 +409,7 @@
         button: button,
         x: coords.targetX,
         y: coords.targetY,
+        mode: cursorMode,
       });
     });
 
@@ -396,6 +423,7 @@
         button: 'left',
         x: coords.targetX,
         y: coords.targetY,
+        mode: cursorMode,
       });
     });
 
@@ -408,6 +436,7 @@
         type: 'dblclick',
         x: coords.targetX,
         y: coords.targetY,
+        mode: cursorMode,
       });
     });
 
@@ -421,6 +450,7 @@
         button: 'right',
         x: coords.targetX,
         y: coords.targetY,
+        mode: cursorMode,
       });
     });
 
@@ -434,6 +464,7 @@
         deltaY: e.deltaY,
         x: coords.targetX,
         y: coords.targetY,
+        mode: cursorMode,
       });
     }, { passive: false });
 

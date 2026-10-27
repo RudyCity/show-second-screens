@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.1.6] - 2026-10-27
+
+### Added
+- **Ghost Cursor Mode (Default)**: Keeps the physical mouse cursor 100% on the user's current desktop. Hovering over the preview window no longer warps the cursor across monitors.
+- **Microsecond Cursor Restoration**: Clicking, double-clicking, right-clicking, dragging, or scrolling executes instantly at the target monitor's coordinates and immediately restores the cursor back to the user's hand without visible disruption.
+- Added toolbar toggle button (`🎯 Tetap di Sini` vs `🚀 Pindah Layar`) giving the user full control to switch between Ghost Mode and Direct Warp Mode.
+
 ## [0.1.5] - 2026-10-27
 
 ### Fixed

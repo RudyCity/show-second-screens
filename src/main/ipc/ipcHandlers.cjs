@@ -13,31 +13,55 @@ function registerIpcHandlers({ displayService, inputService, windowManager }) {
   ipcMain.on('input:send-event', (event, inputEvent) => {
     if (!inputEvent || typeof inputEvent !== 'object') return;
 
-    const { type, x, y, button, deltaY } = inputEvent;
+    const { type, x, y, button, deltaY, mode = 'ghost' } = inputEvent;
 
-    switch (type) {
-      case 'mousemove':
-        inputService.move(x, y);
-        break;
-      case 'mousedown':
-        inputService.move(x, y);
-        inputService.mouseDown(button || 'left');
-        break;
-      case 'mouseup':
-        inputService.move(x, y);
-        inputService.mouseUp(button || 'left');
-        break;
-      case 'click':
-        inputService.move(x, y);
-        inputService.click(button || 'left');
-        break;
-      case 'dblclick':
-        inputService.move(x, y);
-        inputService.doubleClick();
-        break;
-      case 'wheel':
-        inputService.wheel(deltaY || 0);
-        break;
+    if (mode === 'ghost') {
+      switch (type) {
+        case 'click':
+          inputService.ghostClick(x, y, button || 'left');
+          break;
+        case 'dblclick':
+          inputService.ghostDoubleClick(x, y);
+          break;
+        case 'wheel':
+          inputService.ghostWheel(x, y, deltaY || 0);
+          break;
+        case 'mousedown':
+          inputService.ghostDown(x, y, button || 'left');
+          break;
+        case 'mouseup':
+          inputService.ghostUp(x, y, button || 'left');
+          break;
+        case 'drag':
+          inputService.ghostDrag(x, y);
+          break;
+        // In ghost mode, mousemove hover does NOT warp OS cursor
+      }
+    } else {
+      switch (type) {
+        case 'mousemove':
+          inputService.move(x, y);
+          break;
+        case 'mousedown':
+          inputService.move(x, y);
+          inputService.mouseDown(button || 'left');
+          break;
+        case 'mouseup':
+          inputService.move(x, y);
+          inputService.mouseUp(button || 'left');
+          break;
+        case 'click':
+          inputService.move(x, y);
+          inputService.click(button || 'left');
+          break;
+        case 'dblclick':
+          inputService.move(x, y);
+          inputService.doubleClick();
+          break;
+        case 'wheel':
+          inputService.wheel(deltaY || 0);
+          break;
+      }
     }
   });
 

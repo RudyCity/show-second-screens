@@ -15,7 +15,7 @@ class InputService {
 
   init() {
     if (!fs.existsSync(this.injectorPath)) {
-      console.warn(`[InputService] Injector binary not found at ${this.injectorPath}. Input simulation disabled until compiled.`);
+      console.warn(`[InputService] Injector binary not found at ${this.injectorPath}.`);
       return;
     }
 
@@ -48,6 +48,32 @@ class InputService {
     }
   }
 
+  // Ghost Mode: Executes remote action without moving local physical cursor away
+  ghostClick(x, y, button = 'left') {
+    this.send(`ghostclick ${Math.round(x)} ${Math.round(y)} ${button}`);
+  }
+
+  ghostDoubleClick(x, y) {
+    this.send(`ghostdblclick ${Math.round(x)} ${Math.round(y)}`);
+  }
+
+  ghostWheel(x, y, delta) {
+    this.send(`ghostwheel ${Math.round(x)} ${Math.round(y)} ${Math.round(delta)}`);
+  }
+
+  ghostDown(x, y, button = 'left') {
+    this.send(`ghostdown ${Math.round(x)} ${Math.round(y)} ${button}`);
+  }
+
+  ghostUp(x, y, button = 'left') {
+    this.send(`ghostup ${Math.round(x)} ${Math.round(y)} ${button}`);
+  }
+
+  ghostDrag(x, y) {
+    this.send(`ghostdrag ${Math.round(x)} ${Math.round(y)}`);
+  }
+
+  // Direct Mode
   move(x, y) {
     this.send(`move ${Math.round(x)} ${Math.round(y)}`);
   }

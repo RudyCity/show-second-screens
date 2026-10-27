@@ -6,7 +6,8 @@ namespace ShowSecondScreens.Input
 {
     /// <summary>
     /// Native Windows Input Injection Engine using Win32 API.
-    /// Reads one-line commands from Standard Input (stdin) and executes them instantly.
+    /// Supports Ghost Mode (restoring cursor to local window immediately) 
+    /// and Direct Mode (moving cursor to target display).
     /// </summary>
     public static class Program
     {
@@ -14,7 +15,17 @@ namespace ShowSecondScreens.Input
         private static extern bool SetCursorPos(int X, int Y);
 
         [DllImport("user32.dll")]
+        private static extern bool GetCursorPos(out POINT lpPoint);
+
+        [DllImport("user32.dll")]
         private static extern void mouse_event(uint dwFlags, int dx, int dy, uint dwData, UIntPtr dwExtraInfo);
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct POINT
+        {
+            public int X;
+            public int Y;
+        }
 
         private const uint MOUSEEVENTF_LEFTDOWN = 0x0002;
         private const uint MOUSEEVENTF_LEFTUP = 0x0004;
@@ -24,17 +35,17 @@ namespace ShowSecondScreens.Input
         private const uint MOUSEEVENTF_MIDDLEUP = 0x0040;
         private const uint MOUSEEVENTF_WHEEL = 0x0800;
 
+        private static POINT _savedOrigin;
+        private static bool _isDragging = false;
+
         public static void Main(string[] args)
         {
-            // If arguments are passed directly for one-shot execution:
-            // e.g. injector.exe move 100 200
             if (args != null && args.Length > 0)
             {
                 ExecuteCommand(string.Join(" ", args));
                 return;
             }
 
-            // Stream / Daemon mode: Reads commands from stdin
             using (var reader = new StreamReader(Console.OpenStandardInput()))
             {
                 string line;
@@ -64,6 +75,98 @@ namespace ShowSecondScreens.Input
 
                 switch (action)
                 {
+                    // Ghost Click: executes remote click at target without moving the physical cursor away
+                    case "ghostclick":
+                        if (parts.Length >= 3)
+                        {
+                            int tx = int.Parse(parts[1]);
+                            int ty = int.Parse(parts[2]);
+                            string btn = parts.Length >= 4 ? parts[3].ToLowerInvariant() : "left";
+
+                            POINT orig;
+                            GetCursorPos(out orig);
+
+                            SetCursorPos(tx, ty);
+                            FireClick(btn);
+                            SetCursorPos(orig.X, orig.Y);
+                        }
+                        break;
+
+                    case "ghostdblclick":
+                        if (parts.Length >= 3)
+                        {
+                            int tx = int.Parse(parts[1]);
+                            int ty = int.Parse(parts[2]);
+
+                            POINT orig;
+                            GetCursorPos(out orig);
+
+                            SetCursorPos(tx, ty);
+                            FireClick("left");
+                            FireClick("left");
+                            SetCursorPos(orig.X, orig.Y);
+                        }
+                        break;
+
+                    case "ghostwheel":
+                        if (parts.Length >= 4)
+                        {
+                            int tx = int.Parse(parts[1]);
+                            int ty = int.Parse(parts[2]);
+                            int delta = int.Parse(parts[3]);
+
+                            POINT orig;
+                            GetCursorPos(out orig);
+
+                            SetCursorPos(tx, ty);
+                            mouse_event(MOUSEEVENTF_WHEEL, 0, 0, (uint)delta, UIntPtr.Zero);
+                            SetCursorPos(orig.X, orig.Y);
+                        }
+                        break;
+
+                    case "ghostdown":
+                        if (parts.Length >= 3)
+                        {
+                            int tx = int.Parse(parts[1]);
+                            int ty = int.Parse(parts[2]);
+                            string btn = parts.Length >= 4 ? parts[3].ToLowerInvariant() : "left";
+
+                            GetCursorPos(out _savedOrigin);
+                            _isDragging = true;
+
+                            SetCursorPos(tx, ty);
+                            FireDown(btn);
+                        }
+                        break;
+
+                    case "ghostup":
+                        if (parts.Length >= 3)
+                        {
+                            int tx = int.Parse(parts[1]);
+                            int ty = int.Parse(parts[2]);
+                            string btn = parts.Length >= 4 ? parts[3].ToLowerInvariant() : "left";
+
+                            SetCursorPos(tx, ty);
+                            FireUp(btn);
+
+                            if (_isDragging)
+                            {
+                                SetCursorPos(_savedOrigin.X, _savedOrigin.Y);
+                                _isDragging = false;
+                            }
+                        }
+                        break;
+
+                    case "ghostdrag":
+                        if (parts.Length >= 3)
+                        {
+                            int tx = int.Parse(parts[1]);
+                            int ty = int.Parse(parts[2]);
+                            SetCursorPos(tx, ty);
+                        }
+                        break;
+
+                    // Direct Mode (Warps cursor to target)
                     case "move":
                         if (parts.Length >= 3)
                         {
@@ -73,53 +176,26 @@ namespace ShowSecondScreens.Input
                         }
                         break;
 
-                    case "mousedown":
-                    case "down":
-                        {
-                            var btn = parts.Length >= 2 ? parts[1].ToLowerInvariant() : "left";
-                            if (btn == "right") mouse_event(MOUSEEVENTF_RIGHTDOWN, 0, 0, 0, UIntPtr.Zero);
-                            else if (btn == "middle") mouse_event(MOUSEEVENTF_MIDDLEDOWN, 0, 0, 0, UIntPtr.Zero);
-                            else mouse_event(MOUSEEVENTF_LEFTDOWN, 0, 0, 0, UIntPtr.Zero);
-                        }
-                        break;
-
-                    case "mouseup":
-                    case "up":
-                        {
-                            var btn = parts.Length >= 2 ? parts[1].ToLowerInvariant() : "left";
-                            if (btn == "right") mouse_event(MOUSEEVENTF_RIGHTUP, 0, 0, 0, UIntPtr.Zero);
-                            else if (btn == "middle") mouse_event(MOUSEEVENTF_MIDDLEUP, 0, 0, 0, UIntPtr.Zero);
-                            else mouse_event(MOUSEEVENTF_LEFTUP, 0, 0, 0, UIntPtr.Zero);
-                        }
-                        break;
-
                     case "click":
                         {
                             var btn = parts.Length >= 2 ? parts[1].ToLowerInvariant() : "left";
-                            if (btn == "right")
-                            {
-                                mouse_event(MOUSEEVENTF_RIGHTDOWN, 0, 0, 0, UIntPtr.Zero);
-                                mouse_event(MOUSEEVENTF_RIGHTUP, 0, 0, 0, UIntPtr.Zero);
-                            }
-                            else if (btn == "middle")
-                            {
-                                mouse_event(MOUSEEVENTF_MIDDLEDOWN, 0, 0, 0, UIntPtr.Zero);
-                                mouse_event(MOUSEEVENTF_MIDDLEUP, 0, 0, 0, UIntPtr.Zero);
-                            }
-                            else
-                            {
-                                mouse_event(MOUSEEVENTF_LEFTDOWN, 0, 0, 0, UIntPtr.Zero);
-                                mouse_event(MOUSEEVENTF_LEFTUP, 0, 0, 0, UIntPtr.Zero);
-                            }
+                            FireClick(btn);
                         }
                         break;
 
-                    case "dblclick":
+                    case "down":
+                    case "mousedown":
                         {
-                            mouse_event(MOUSEEVENTF_LEFTDOWN, 0, 0, 0, UIntPtr.Zero);
-                            mouse_event(MOUSEEVENTF_LEFTUP, 0, 0, 0, UIntPtr.Zero);
-                            mouse_event(MOUSEEVENTF_LEFTDOWN, 0, 0, 0, UIntPtr.Zero);
-                            mouse_event(MOUSEEVENTF_LEFTUP, 0, 0, 0, UIntPtr.Zero);
+                            var btn = parts.Length >= 2 ? parts[1].ToLowerInvariant() : "left";
+                            FireDown(btn);
+                        }
+                        break;
+
+                    case "up":
+                    case "mouseup":
+                        {
+                            var btn = parts.Length >= 2 ? parts[1].ToLowerInvariant() : "left";
+                            FireUp(btn);
                         }
                         break;
 
@@ -134,8 +210,28 @@ namespace ShowSecondScreens.Input
             }
             catch
             {
-                // Ignore parsing errors for uninterrupted high-speed streaming
+                // Ignore parse errors for continuous stream stability
             }
+        }
+
+        private static void FireClick(string btn)
+        {
+            FireDown(btn);
+            FireUp(btn);
+        }
+
+        private static void FireDown(string btn)
+        {
+            if (btn == "right") mouse_event(MOUSEEVENTF_RIGHTDOWN, 0, 0, 0, UIntPtr.Zero);
+            else if (btn == "middle") mouse_event(MOUSEEVENTF_MIDDLEDOWN, 0, 0, 0, UIntPtr.Zero);
+            else mouse_event(MOUSEEVENTF_LEFTDOWN, 0, 0, 0, UIntPtr.Zero);
+        }
+
+        private static void FireUp(string btn)
+        {
+            if (btn == "right") mouse_event(MOUSEEVENTF_RIGHTUP, 0, 0, 0, UIntPtr.Zero);
+            else if (btn == "middle") mouse_event(MOUSEEVENTF_MIDDLEUP, 0, 0, 0, UIntPtr.Zero);
+            else mouse_event(MOUSEEVENTF_LEFTUP, 0, 0, 0, UIntPtr.Zero);
         }
     }
 }
