@@ -226,11 +226,8 @@
     </div>
 
     <div class="titlebar-right">
-      <button class="btn active" id="btnPin" title="Toggle Always on Top">📌 Pin</button>
+      <button class="btn active" id="btnPin" title="Toggle Always on Top">📌 Always On Top</button>
       <button class="btn" id="btnOpacity" title="Toggle Window Opacity">🌓 100%</button>
-      <button class="btn" id="btnMinimize" title="Minimize">−</button>
-      <button class="btn" id="btnMaximize" title="Maximize">□</button>
-      <button class="btn btn-close" id="btnClose" title="Close Window">✕</button>
     </div>
   </header>
 
@@ -269,9 +266,6 @@
     const cursorMarker = document.getElementById('cursorMarker');
     const btnPin = document.getElementById('btnPin');
     const btnOpacity = document.getElementById('btnOpacity');
-    const btnMinimize = document.getElementById('btnMinimize');
-    const btnMaximize = document.getElementById('btnMaximize');
-    const btnClose = document.getElementById('btnClose');
 
     // Titlebar Auto-dim on idle mouse
     let dimTimeout;
@@ -298,10 +292,6 @@
       window.electronAPI.setOpacity(op);
       btnOpacity.textContent = `🌓 ${Math.round(op * 100)}%`;
     });
-
-    btnMinimize.addEventListener('click', () => window.electronAPI.minimizeWindow());
-    btnMaximize.addEventListener('click', () => window.electronAPI.maximizeWindow());
-    btnClose.addEventListener('click', () => window.electronAPI.closeWindow());
 
     // Coordinate Mapping Math Engine
     function calculateTargetCoordinates(e) {

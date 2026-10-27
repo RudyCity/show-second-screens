@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.1.3] - 2026-10-27
+
+### Fixed
+- Fixed window visibility issue where the Electron window remained hidden or occluded:
+  - Enabled native window framing (`frame: true`) with native title bar, taskbar icon, and standard OS minimize/maximize controls.
+  - Set `show: true` directly on creation, eliminating the blocking `ready-to-show` delay during WebRTC media stream initialization.
+  - Reverted `npm start` script directly to `electron .` without intermediate child process spawning.
+  - Added media permission request auto-approvals in Electron's default session.
+
 ## [0.1.2] - 2026-10-27
 
 ### Fixed

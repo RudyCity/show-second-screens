@@ -10,27 +10,41 @@ class WindowManager {
   }
 
   createWindow() {
+    console.log('[WindowManager] Initializing BrowserWindow...');
     this.mainWindow = new BrowserWindow({
-      width: 960,
-      height: 580,
-      minWidth: 360,
-      minHeight: 220,
-      frame: false, // Frameless for custom sleek header with draggable controls
-      transparent: false,
-      backgroundColor: '#090a0f',
-      alwaysOnTop: true, // Floating on top by default
-      skipTaskbar: false,
+      title: 'Show Second Screens - Target Preview & Remote',
+      width: 1024,
+      height: 640,
+      minWidth: 420,
+      minHeight: 280,
+      show: true, // Show immediately!
+      frame: true, // Native title bar & borders
       autoHideMenuBar: true,
+      backgroundColor: '#090a0f',
+      alwaysOnTop: true, // Floating mirror window
+      center: true, // Center on screen
       webPreferences: {
         preload: path.join(__dirname, '../../preload/index.cjs'),
         nodeIntegration: false,
         contextIsolation: true,
-        backgroundThrottling: false, // Keep 60fps rendering even if window is in background
+        backgroundThrottling: false,
       },
     });
 
+    this.mainWindow.webContents.on('did-finish-load', () => {
+      console.log('[WindowManager] webContents did-finish-load successfully!');
+    });
+
+    this.mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription) => {
+      console.error('[WindowManager] did-fail-load:', errorCode, errorDescription);
+    });
+
     const indexPath = path.join(__dirname, '../../renderer/index.html');
+    console.log('[WindowManager] Loading file:', indexPath);
     this.mainWindow.loadFile(indexPath);
+
+    this.mainWindow.show();
+    this.mainWindow.focus();
 
     this.mainWindow.on('closed', () => {
       this.mainWindow = null;
@@ -45,7 +59,7 @@ class WindowManager {
 
   setAlwaysOnTop(isAlwaysOnTop) {
     if (this.mainWindow) {
-      this.mainWindow.setAlwaysOnTop(isAlwaysOnTop, 'floating');
+      this.mainWindow.setAlwaysOnTop(isAlwaysOnTop);
     }
   }
 
