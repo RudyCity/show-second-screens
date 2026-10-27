@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.1.4] - 2026-10-27
+
+### Fixed
+- Completely silenced terminal stderr spam from Chromium WebRTC capture (`mouse_cursor_monitor_win: 5` and `desktop.cc: 170`) by introducing `scripts/start.cjs` with ignored stderr while preserving standard output and app stability.
+- Cleaned up development debug logs and finalized production window configuration.
+
 ## [0.1.3] - 2026-10-27
 
 ### Fixed

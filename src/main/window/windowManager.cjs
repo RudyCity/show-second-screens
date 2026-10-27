@@ -10,7 +10,6 @@ class WindowManager {
   }
 
   createWindow() {
-    console.log('[WindowManager] Initializing BrowserWindow...');
     this.mainWindow = new BrowserWindow({
       title: 'Show Second Screens - Target Preview & Remote',
       width: 1024,
@@ -31,16 +30,7 @@ class WindowManager {
       },
     });
 
-    this.mainWindow.webContents.on('did-finish-load', () => {
-      console.log('[WindowManager] webContents did-finish-load successfully!');
-    });
-
-    this.mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription) => {
-      console.error('[WindowManager] did-fail-load:', errorCode, errorDescription);
-    });
-
     const indexPath = path.join(__dirname, '../../renderer/index.html');
-    console.log('[WindowManager] Loading file:', indexPath);
     this.mainWindow.loadFile(indexPath);
 
     this.mainWindow.show();

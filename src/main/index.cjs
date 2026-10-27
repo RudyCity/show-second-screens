@@ -13,19 +13,14 @@ const windowManager = new WindowManager();
 const displayService = new DisplayService();
 const inputService = new InputService();
 
-console.log('[MAIN] Starting Electron process...');
-
 app.whenReady().then(() => {
-  console.log('[MAIN] app.whenReady fired!');
   const { session } = require('electron');
   session.defaultSession.setPermissionRequestHandler((webContents, permission, callback) => {
     callback(true);
   });
 
   registerIpcHandlers({ displayService, inputService, windowManager });
-  console.log('[MAIN] Creating window...');
-  const win = windowManager.createWindow();
-  console.log('[MAIN] Window created successfully with ID:', win ? win.id : 'null');
+  windowManager.createWindow();
 
   app.on('activate', () => {
     if (!windowManager.getWindow()) {
