@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.1.2] - 2026-10-27
+
+### Fixed
+- Added intelligent stream launcher (`src/main/launcher.cjs`) for `npm start` that filters out repeated internal WebRTC desktop thread (`SetThreadDesktop: 170`) and cursor access (`mouse_cursor_monitor_win: 5`) warnings from the terminal while preserving all actual errors and application logs.
+
 ## [0.1.1] - 2026-10-27
 
 ### Fixed
