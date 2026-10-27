@@ -21,6 +21,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Dynamic polymorphic adapter selection based on runtime `process.platform`.
 - **macOS Window Support**: Added `titleBarStyle: 'hiddenInset'` and traffic light alignment.
 
+### Changed
+- Relicensed project from MIT to **Apache License 2.0** (`LICENSE`, `package.json`, `README.md`).
+
 ## [0.1.6] - 2026-10-27
 
 ### Added

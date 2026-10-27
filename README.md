@@ -3,7 +3,7 @@
 > **Interactive Target Screen Mirror & Remote Control Window**
 > Real-time streaming and 1:1 remote interaction for secondary, external, or virtual displays inside a floating, movable, and resizable window with **Ghost Cursor Mode** and **System Tray** support.
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 [![Platform: Windows | macOS | Linux](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux-green.svg)](#cross-platform-architecture)
 [![Electron: v33+](https://img.shields.io/badge/Electron-v33+-47848F.svg)](https://www.electronjs.org/)
 [![Version: 0.2.0](https://img.shields.io/badge/Version-0.2.0-emerald.svg)](CHANGELOG.md)
@@ -179,6 +179,6 @@ Proyek ini memiliki panduan operasional ketat untuk pengembang dan AI Coding Age
 
 ## 📄 Lisensi
 
-Didistribusikan di bawah Lisensi MIT. Lihat berkas [LICENSE](LICENSE) untuk informasi lebih lanjut.
+Didistribusikan di bawah Lisensi Apache 2.0. Lihat berkas [LICENSE](LICENSE) untuk informasi lebih lanjut.
 
 Copyright © 2026 **RudyCity**. All rights reserved.
