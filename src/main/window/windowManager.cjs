@@ -3,10 +3,12 @@ const path = require('path');
 
 /**
  * Window Manager for the floating target screen preview window.
+ * Supports Windows, macOS, and Linux window models.
  */
 class WindowManager {
   constructor() {
     this.mainWindow = null;
+    this.isAlwaysOnTop = true;
   }
 
   createWindow() {
@@ -20,6 +22,8 @@ class WindowManager {
     const winX = Math.round(x + (width - winWidth) / 2);
     const winY = Math.round(y + (height - winHeight) / 2);
 
+    const isMac = process.platform === 'darwin';
+
     this.mainWindow = new BrowserWindow({
       title: 'Show Second Screens - Target Preview & Remote',
       x: winX,
@@ -29,10 +33,11 @@ class WindowManager {
       minWidth: 420,
       minHeight: 280,
       show: true,
-      frame: true, // Native title bar & controls
+      frame: true,
+      titleBarStyle: isMac ? 'hiddenInset' : 'default',
       autoHideMenuBar: true,
       backgroundColor: '#090a0f',
-      alwaysOnTop: true, // Floating mirror window
+      alwaysOnTop: this.isAlwaysOnTop,
       webPreferences: {
         preload: path.join(__dirname, '../../preload/index.cjs'),
         nodeIntegration: false,
@@ -47,7 +52,7 @@ class WindowManager {
     this.mainWindow.show();
     this.mainWindow.focus();
     this.mainWindow.moveTop();
-    this.mainWindow.setAlwaysOnTop(true, 'screen-saver');
+    this.mainWindow.setAlwaysOnTop(this.isAlwaysOnTop, isMac ? 'floating' : 'screen-saver');
 
     this.mainWindow.on('closed', () => {
       this.mainWindow = null;
@@ -56,13 +61,30 @@ class WindowManager {
     return this.mainWindow;
   }
 
+  centerOnActiveScreen() {
+    if (!this.mainWindow) return;
+    const cursorPos = screen.getCursorScreenPoint();
+    const activeDisplay = screen.getDisplayNearestPoint(cursorPos);
+    const { x, y, width, height } = activeDisplay.bounds;
+    const winBounds = this.mainWindow.getBounds();
+
+    const newX = Math.round(x + (width - winBounds.width) / 2);
+    const newY = Math.round(y + (height - winBounds.height) / 2);
+
+    this.mainWindow.setPosition(newX, newY);
+    this.mainWindow.show();
+    this.mainWindow.focus();
+  }
+
   getWindow() {
     return this.mainWindow;
   }
 
   setAlwaysOnTop(isAlwaysOnTop) {
+    this.isAlwaysOnTop = isAlwaysOnTop;
     if (this.mainWindow) {
-      this.mainWindow.setAlwaysOnTop(isAlwaysOnTop, 'screen-saver');
+      const level = process.platform === 'darwin' ? 'floating' : 'screen-saver';
+      this.mainWindow.setAlwaysOnTop(isAlwaysOnTop, level);
     }
   }
 

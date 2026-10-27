@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.2.0] - 2026-10-27
+
+### Added
+- **System Tray Integration** (`src/main/tray/trayManager.cjs`):
+  - Dynamic vector tray icon with support for Windows, macOS (template image), and Linux.
+  - Interactive context menu with Quick Show/Hide toggle, Always-on-Top checkbox, Center Window on Active Screen, and Quit options.
+  - Single click and double click tray handlers to toggle preview window visibility.
+- **Cross-Platform Input Architecture** (`src/main/input/adapters/`):
+  - `WindowsAdapter`: Native Win32 C# `SendInput` with Ghost Cursor microsecond restoration.
+  - `MacAdapter`: Native macOS CoreGraphics / AppleScript / `cliclick` integration.
+  - `LinuxAdapter`: `xdotool` / `ydotool` supporting X11 and Wayland environments.
+  - Dynamic polymorphic adapter selection based on runtime `process.platform`.
+- **macOS Window Support**: Added `titleBarStyle: 'hiddenInset'` and traffic light alignment.
+
 ## [0.1.6] - 2026-10-27
 
 ### Added

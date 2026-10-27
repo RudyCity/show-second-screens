@@ -2,6 +2,29 @@
 
 > **Interactive Target Screen Mirror & Remote Control Window**
 > Preview secondary or virtual displays in a floating, movable, and resizable window with 1:1 remote mouse interaction.
+> Cross-platform support for **Windows**, **macOS**, and **Linux** with **System Tray** integration.
+
+---
+
+## Fitur Utama
+
+- 🖥️ **Real-time Target Screen Preview**: Live streaming layar target 60 FPS dengan latensi ultra-rendah.
+- 🎯 **Ghost Cursor Mode (Default)**:
+  - Kursor fisik Anda **100% tetap di desktop dan jendela saat ini**. Kursor tidak ditarik keluar layar saat mengarahkan pointer ke preview.
+  - Saat mengklik atau scroll, engine input melakukan eksekusi mikrodetik (<0.5ms) ke layar target dan langsung memulihkan posisi kursor kembali ke tangan Anda.
+- 🔄 **Cross-Platform Input Engine**:
+  - **Windows**: Menggunakan native C# Win32 SendInput engine (`bin/injector.exe`).
+  - **macOS**: Menggunakan CoreGraphics / AppleScript / `cliclick` adapter.
+  - **Linux**: Menggunakan `xdotool` / `ydotool` (mendukung X11 dan Wayland).
+- 📌 **System Tray Integration**:
+  - Ikon baki sistem (*System Tray*) di pojok taskbar/menu bar.
+  - Menu konteks tray: Tampilkan/Sembunyikan jendela, Always on Top, Reset posisi ke monitor aktif, dan Keluar.
+  - Klik / klik ganda pada ikon tray untuk toggle sembunyikan atau tampilkan window seketika.
+- 📐 **Presisi Pemetaan Koordinat (1:1)**:
+  - Konversi koordinat viewport lokal ke monitor target memperhitungkan letterbox offset, DPI scaling, dan resolusi asli.
+- 🪟 **Movable & Resizable Floating Window**:
+  - Otomatis terbuka di tengah monitor aktif tempat kursor Anda berada (`getDisplayNearestPoint`).
+  - Mendukung resize bebas, always-on-top, dan pengaturan transparansi (opacity).
 
 ---
 
@@ -9,22 +32,20 @@
 
 ### 1. Prasyarat
 - **Node.js** (v18+ atau v20+)
-- **Windows OS** (dukungan bawaan Windows .NET Framework untuk native injector)
+- **OS**: Windows, macOS, atau Linux (Ubuntu/Debian/Fedora/Arch)
 
 ### 2. Instalasi Dependensi
-Jalankan di PowerShell:
+Jalankan di terminal:
 ```powershell
 npm install
 ```
 
-### 3. Kompilasi Native Input Injector (Opsional, sudah terkompilasi bawaan)
-Jika ingin mengompilasi ulang binary native C# input engine:
+### 3. Kompilasi Native Input Injector (Khusus Windows, sudah terkompilasi bawaan)
 ```powershell
 npm run build:injector
 ```
 
 ### 4. Menjalankan Aplikasi
-Mulai aplikasi preview interaktif:
 ```powershell
 npm start
 ```
@@ -34,45 +55,14 @@ npm start
 ## Panduan Penggunaan di Jendela Aplikasi
 
 1. **Memilih Layar**: Gunakan dropdown pada header atas untuk memilih monitor target yang ingin dipantau.
-2. **Memindahkan Jendela (Draggable)**: Arahkan kursor ke area titlebar/header atas, lalu klik dan drag jendela ke posisi yang diinginkan di layar Anda.
-3. **Mengubah Ukuran (Resizable)**: Drag tepi atau sudut jendela untuk memperbesar/memperkecil preview. Kanvas akan otomatis menyesuaikan rasio aspek monitor target.
-4. **Interaksi Remote**:
-   - **Klik Kiri**: Klik kiri langsung pada elemen preview di dalam video.
-   - **Klik Kanan**: Klik kanan untuk memunculkan Context Menu di layar target.
-   - **Double Click**: Double click cepat pada preview.
-   - **Drag & Drop**: Tekan dan tahan tombol mouse sambil menggeser cursor di area preview.
-   - **Scroll Wheel**: Putar roda mouse ke atas/bawah di atas kanvas preview.
-5. **Pin & Opacity**:
-   - Tombol **📌 Pin**: Mengaktifkan atau mematikan mode *Always-on-Top*.
-   - Tombol **🌓 Opacity**: Mengubah tingkat transparansi jendela (100% / 85% / 65%).
-
----
-
-## Overview
-
-**Show Second Screens** adalah aplikasi desktop modern yang memungkinkan pengguna melihat preview real-time dari layar target (secondary display / virtual display / monitor eksternal) dalam sebuah floating window. 
-
-Tidak hanya sekadar menampilkan preview gambar, aplikasi ini menyediakan **interaksi remote langsung**: klik mouse, drag, scroll, dan kontrol selayaknya mengoperasikan layar tersebut secara langsung, dilengkapi kemampuan window yang dapat dipindah-pindah (*draggable*) dan diubah ukurannya (*resizable*).
-
----
-
-## Fitur Utama
-
-- 🖥️ **Real-time Target Screen Preview**: Menampilkan live streaming layar target dengan performa tinggi dan latensi rendah.
-- 🎯 **1:1 Remote Click & Interaction**:
-  - Klik Kiri, Klik Kanan, Double Click langsung pada kanvas preview.
-  - Mouse Drag & Drop antar elemen di layar target.
-  - Mouse Scroll Wheel (vertikal & horizontal).
-  - Hover & Cursor tracking otomatis.
-- 📐 **Presisi Pemetaan Koordinat (Coordinate Mapping Engine)**:
-  - Mengonversi posisi piksel viewport lokal ke koordinat monitor target dengan memperhitungkan resolusi asli, scaling DPI, dan rasio aspek (letterbox offset).
-- 🪟 **Movable & Resizable Floating Window**:
-  - Window dapat dipindahkan ke mana saja pada layar utama via drag handle khusus.
-  - Ukuran jendela dapat di-resize bebas dengan opsi mempertahankan rasio aspek atau fluid fit.
-  - Mode **Always on Top** (Pin) dan kontrol transparansi (opacity).
-- ⚡ **Desain Minimalis & Tactile HUD**:
-  - Kontrol HUD otomatis menyembunyikan diri (*auto-hide/dim*) saat tidak digunakan agar pandangan layar tidak terhalang.
-  - Telemetri status real-time: indikator FPS, latensi render, dan informasi display target.
+2. **Mode Kursor (`🎯 Tetap di Sini` vs `🚀 Pindah Layar`)**:
+   - **`🎯 Tetap di Sini`** (Default): Kursor fisik Anda tidak akan berpindah ke layar kedua.
+   - **`🚀 Pindah Layar`**: Kursor fisik langsung berpindah ke layar kedua saat mouse digerakkan di atas preview.
+3. **Memindahkan Jendela (Draggable)**: Drag titlebar/header untuk memindahkan jendela.
+4. **Mengubah Ukuran (Resizable)**: Drag sudut jendela untuk memperbesar/memperkecil preview.
+5. **System Tray**:
+   - Klik ikon monitor hijau di system tray untuk minimize/restore jendela.
+   - Klik kanan ikon tray untuk menu cepat (Toggle Window, Always on Top, Center Window, Quit).
 
 ---
 
@@ -82,40 +72,34 @@ Proyek ini dibangun menggunakan arsitektur modular yang ketat:
 
 ```text
 show-second-screens/
-├── .gitignore
 ├── AGENTS.md                 # Standar operasional wajib AI Agent
 ├── CHANGELOG.md              # Log riwayat perubahan versi
 ├── README.md                 # Dokumentasi proyek & panduan running
 ├── package.json              # Versi & manifest dependensi
 ├── bin/
-│   └── injector.exe          # Native Win32 input injection engine
+│   └── injector.exe          # Native Win32 input injection engine (Windows)
+├── scripts/
+│   └── start.cjs             # Clean process launcher
 ├── src/
-│   ├── main/                 # Main Process (Lifecycle, Window, OS Capture, Input)
-│   │   ├── index.cjs         # Application entrypoint
-│   │   ├── window/           # Window Manager (Draggable, Resizable, Frameless)
+│   ├── main/                 # Main Process
+│   │   ├── index.cjs         # App lifecycle & bootstrapping
+│   │   ├── window/           # Window Manager (Multi-monitor detection)
 │   │   ├── capture/          # Screen Capture & Monitor Enumeration
-│   │   ├── input/            # Native Input Injection (C# source & daemon manager)
+│   │   ├── input/            # Cross-platform Input Service
+│   │   │   ├── inputService.cjs
+│   │   │   ├── injector.cs   # C# Win32 source
+│   │   │   └── adapters/     # OS Adapters (Windows, macOS, Linux)
+│   │   ├── tray/             # System Tray Manager & Menus
 │   │   └── ipc/              # IPC Communication Bridge
-│   ├── preload/              # Preload Layer (Context Isolation Bridge)
-│   │   └── index.cjs         # Safe Exposed APIs
-│   ├── renderer/             # Frontend UI (Preview Canvas, HUD, Toolbar)
-│   │   └── index.html        # Video Stream Viewport & Coordinate Mapper
+│   ├── preload/              # Secure Preload Bridge
+│   │   └── index.cjs
+│   ├── renderer/             # Frontend UI (Canvas Preview & Controls)
+│   │   └── index.html
 │   └── shared/               # Shared Interfaces, DTOs, dan Constants
-│       ├── types/            # Tipe Display, InputEvent, WindowConfig
-│       ├── constants/        # Saluran IPC & default configs
+│       ├── types/
+│       ├── constants/
 │       └── utils/            # Coordinate Mapper Engine
 ```
-
----
-
-## Aturan Pengembangan (Development Rules)
-
-Seluruh kontributor dan AI Agent wajib mematuhi panduan dalam [AGENTS.md](file:///c:/Users/USER/Documents/antigravity/show-second-screens/AGENTS.md):
-1. **Modular & SRP**: Setiap file dan modul hanya bertanggung jawab atas satu tugas spesifik.
-2. **Maksimal 1000 Baris Per File**: Hard limit 1000 baris. Refactor modular wajib dilakukan jika file mencapai 700–800 baris.
-3. **Commit Tiap Perubahan**: Setiap penambahan fitur, bugfix, atau refactor wajib langsung di-commit ke Git menggunakan Conventional Commits (`feat:`, `fix:`, `refactor:`, `chore:`).
-4. **Update Versi, Changelog, & Readme**: Selalu sinkronkan nomor versi, catat perubahan di `CHANGELOG.md`, dan perbarui `README.md`.
-5. **PowerShell Format**: Gunakan tanda titik koma (`;`) sebagai pemisah perintah pada PowerShell.
 
 ---
 
