@@ -16,40 +16,43 @@ function registerIpcHandlers({ displayService, inputService, windowManager }) {
     const { type, x, y, button, deltaY, origX, origY, mode = 'ghost' } = inputEvent;
 
     if (mode === 'ghost') {
+      // Phantom mode: injection via PostMessage directly to the window under
+      // the target point. The physical cursor NEVER moves (no SetCursorPos
+      // round-trip, no flicker) — it stays exactly where the user left it.
       switch (type) {
         case 'click':
-          inputService.ghostClick(x, y, button || 'left', origX, origY);
+          inputService.phantomClick(x, y, button || 'left');
           if (windowManager) {
             const win = windowManager.getWindow();
             if (win && !win.isDestroyed()) win.focus();
           }
           break;
         case 'dblclick':
-          inputService.ghostDoubleClick(x, y, origX, origY);
+          inputService.phantomDoubleClick(x, y);
           if (windowManager) {
             const win = windowManager.getWindow();
             if (win && !win.isDestroyed()) win.focus();
           }
           break;
         case 'wheel':
-          inputService.ghostWheel(x, y, deltaY || 0, origX, origY);
+          inputService.phantomWheel(x, y, deltaY || 0);
           break;
         case 'dragstart':
         case 'mousedown':
-          inputService.ghostDown(x, y, button || 'left', origX, origY);
+          inputService.phantomDown(x, y, button || 'left');
           break;
         case 'dragend':
         case 'mouseup':
-          inputService.ghostUp(x, y, button || 'left', origX, origY);
+          inputService.phantomUp(x, y, button || 'left');
           if (windowManager) {
             const win = windowManager.getWindow();
             if (win && !win.isDestroyed()) win.focus();
           }
           break;
         case 'drag':
-          inputService.ghostDrag(x, y);
+          inputService.phantomMove(x, y, button || 'left');
           break;
-        // In ghost mode, mousemove hover does NOT warp OS cursor
+        // In phantom mode, mousemove hover does NOT warp OS cursor
       }
     } else {
       switch (type) {

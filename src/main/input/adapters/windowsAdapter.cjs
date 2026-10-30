@@ -95,6 +95,32 @@ class WindowsAdapter extends BaseAdapter {
     this.send(`ghostdrag ${Math.round(x)} ${Math.round(y)}`);
   }
 
+  // Phantom Mode: events delivered via PostMessage to the window under the
+  // target point — the OS cursor never moves at all (no flicker, no warp).
+  phantomClick(x, y, button = 'left') {
+    this.send(`msgclick ${Math.round(x)} ${Math.round(y)} ${button}`);
+  }
+
+  phantomDoubleClick(x, y) {
+    this.send(`msgdblclick ${Math.round(x)} ${Math.round(y)}`);
+  }
+
+  phantomWheel(x, y, delta) {
+    this.send(`msgwheel ${Math.round(x)} ${Math.round(y)} ${Math.round(delta)}`);
+  }
+
+  phantomDown(x, y, button = 'left') {
+    this.send(`msgdown ${Math.round(x)} ${Math.round(y)} ${button}`);
+  }
+
+  phantomUp(x, y, button = 'left') {
+    this.send(`msgup ${Math.round(x)} ${Math.round(y)} ${button}`);
+  }
+
+  phantomMove(x, y, button = null) {
+    this.send(`msgmove ${Math.round(x)} ${Math.round(y)}${button ? ` ${button}` : ''}`);
+  }
+
   move(x, y) {
     this.send(`move ${Math.round(x)} ${Math.round(y)}`);
   }

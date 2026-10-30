@@ -378,6 +378,7 @@
           if (isDragging) {
             window.electronAPI.sendInput({
               type: 'drag',
+              button: mouseDownData.button,
               x: coords.targetX,
               y: coords.targetY,
               origX: e.screenX,

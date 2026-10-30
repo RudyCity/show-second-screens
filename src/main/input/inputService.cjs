@@ -50,6 +50,31 @@ class InputService {
     this.adapter.ghostDrag(x, y);
   }
 
+  // Phantom Mode passthrough (PostMessage injection, cursor never moves)
+  phantomClick(x, y, button = 'left') {
+    this.adapter.phantomClick(x, y, button);
+  }
+
+  phantomDoubleClick(x, y) {
+    this.adapter.phantomDoubleClick(x, y);
+  }
+
+  phantomWheel(x, y, delta) {
+    this.adapter.phantomWheel(x, y, delta);
+  }
+
+  phantomDown(x, y, button = 'left') {
+    this.adapter.phantomDown(x, y, button);
+  }
+
+  phantomUp(x, y, button = 'left') {
+    this.adapter.phantomUp(x, y, button);
+  }
+
+  phantomMove(x, y, button = null) {
+    this.adapter.phantomMove(x, y, button);
+  }
+
   move(x, y) {
     this.adapter.move(x, y);
   }
