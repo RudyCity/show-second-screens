@@ -6,7 +6,7 @@
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 [![Platform: Windows | macOS | Linux](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux-green.svg)](#cross-platform-architecture)
 [![Electron: v33+](https://img.shields.io/badge/Electron-v33+-47848F.svg)](https://www.electronjs.org/)
-[![Version: 0.3.1](https://img.shields.io/badge/Version-0.3.1-emerald.svg)](CHANGELOG.md)
+[![Version: 0.3.2](https://img.shields.io/badge/Version-0.3.2-emerald.svg)](CHANGELOG.md)
 
 ---
 
@@ -88,7 +88,7 @@ Untuk membuat file executable mandiri (*single-file portable*) yang dapat langsu
 npm run build:portable
 ```
 File executable portable akan otomatis dibuat di folder `dist/`:
-- `dist/Show-Second-Screens-Portable-0.3.1.exe` (langsung double-click untuk menjalankan).
+- `dist/Show-Second-Screens-Portable-0.3.2.exe` (langsung double-click untuk menjalankan).
 
 ---
 

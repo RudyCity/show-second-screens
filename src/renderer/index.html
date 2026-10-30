@@ -195,19 +195,6 @@
       to { transform: rotate(360deg); }
     }
 
-    /* Remote Cursor Indicator Ring */
-    .cursor-marker {
-      position: absolute;
-      width: 14px;
-      height: 14px;
-      border: 2px solid var(--accent);
-      border-radius: 50%;
-      transform: translate(-50%, -50%);
-      pointer-events: none;
-      transition: transform 0.05s ease-out;
-      opacity: 0.75;
-      display: none;
-    }
   </style>
 </head>
 <body>
@@ -240,7 +227,6 @@
     </div>
 
     <video id="screenVideo" class="screen-video" autoplay playsinline muted></video>
-    <div id="cursorMarker" class="cursor-marker"></div>
   </main>
 
   <script>
@@ -265,7 +251,6 @@
     const placeholderText = document.getElementById('placeholderText');
     const fpsDisplay = document.getElementById('fpsDisplay');
     const coordDisplay = document.getElementById('coordDisplay');
-    const cursorMarker = document.getElementById('cursorMarker');
     const btnMode = document.getElementById('btnMode');
     const btnPin = document.getElementById('btnPin');
     const btnOpacity = document.getElementById('btnOpacity');
@@ -308,27 +293,53 @@
       if (!activeDisplay) return null;
 
       const rect = screenVideo.getBoundingClientRect();
-      const localX = e.clientX - rect.left;
-      const localY = e.clientY - rect.top;
+      if (!rect || rect.width <= 0 || rect.height <= 0) return null;
 
-      const videoWidth = screenVideo.clientWidth;
-      const videoHeight = screenVideo.clientHeight;
+      // Intrinsic video dimensions from the active stream
+      const videoW = screenVideo.videoWidth || activeDisplay.bounds.width;
+      const videoH = screenVideo.videoHeight || activeDisplay.bounds.height;
+      if (videoW <= 0 || videoH <= 0) return null;
 
-      if (videoWidth <= 0 || videoHeight <= 0) return null;
+      const streamAspect = videoW / videoH;
+      const elemAspect = rect.width / rect.height;
 
-      // Check if click is inside video bounds
-      if (localX < 0 || localX > videoWidth || localY < 0 || localY > videoHeight) {
+      let renderWidth = rect.width;
+      let renderHeight = rect.height;
+      let offsetX = 0;
+      let offsetY = 0;
+
+      // Object-fit: contain letterbox & pillarbox computation
+      if (elemAspect > streamAspect) {
+        // Element is wider than stream: pillarbox (black bars on left & right)
+        renderWidth = rect.height * streamAspect;
+        renderHeight = rect.height;
+        offsetX = (rect.width - renderWidth) / 2;
+      } else {
+        // Element is taller than stream: letterbox (black bars on top & bottom)
+        renderWidth = rect.width;
+        renderHeight = rect.width / streamAspect;
+        offsetY = (rect.height - renderHeight) / 2;
+      }
+
+      const clickX = e.clientX - rect.left;
+      const clickY = e.clientY - rect.top;
+
+      const relX = clickX - offsetX;
+      const relY = clickY - offsetY;
+
+      // Ignore interactions outside the rendered display content (black bars)
+      if (relX < 0 || relX > renderWidth || relY < 0 || relY > renderHeight) {
         return null;
       }
 
-      const normX = localX / videoWidth;
-      const normY = localY / videoHeight;
+      const u = Math.max(0, Math.min(1, relX / renderWidth));
+      const v = Math.max(0, Math.min(1, relY / renderHeight));
 
-      const targetBounds = activeDisplay.bounds;
-      const targetX = Math.round(targetBounds.x + normX * targetBounds.width);
-      const targetY = Math.round(targetBounds.y + normY * targetBounds.height);
+      const bounds = activeDisplay.bounds;
+      const targetX = Math.round(bounds.x + u * bounds.width);
+      const targetY = Math.round(bounds.y + v * bounds.height);
 
-      return { targetX, targetY, normX, normY };
+      return { targetX, targetY, normX: u, normY: v };
     }
 
     // Interactive Input Simulation Listener on Video Preview
@@ -342,9 +353,6 @@
       if (!coords) return;
 
       coordDisplay.textContent = `X: ${coords.targetX} Y: ${coords.targetY}`;
-      cursorMarker.style.display = 'block';
-      cursorMarker.style.left = `${e.clientX}px`;
-      cursorMarker.style.top = `${e.clientY}px`;
 
       // In Ghost mode: cursor stays 100% on current desktop during hover and clicks!
       if (cursorMode === 'ghost') {
@@ -513,7 +521,6 @@
     }, { passive: false });
 
     screenVideo.addEventListener('mouseleave', () => {
-      cursorMarker.style.display = 'none';
       if (isDragging && activeDisplay && mouseDownData) {
         window.electronAPI.sendInput({
           type: 'dragend',

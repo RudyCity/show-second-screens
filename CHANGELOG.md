@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.3.2] - 2026-10-30
+
+### Removed
+- **Removed Artificial Cursor Ring Marker (`cursorMarker`)**:
+  - Completely removed the green/yellow circular ring indicator overlay from CSS, DOM, and event listeners to keep the viewport clean, professional, and free of visual clutter.
+
+### Fixed
+- **Pixel-Perfect 1:1 Target Coordinate Precision**:
+  - Implemented exact letterboxing and pillarboxing aspect ratio offset calculations in `calculateTargetCoordinates()` based on intrinsic video stream dimensions (`videoWidth`, `videoHeight`) vs viewport element aspect ratio.
+  - Clicks and interactions occurring in empty letterbox margins are cleanly rejected.
+  - Enabled Per-Monitor V2 DPI Awareness (`SetProcessDpiAwarenessContext(-4)`) in `injector.cs`, eliminating Windows OS coordinate virtualization and ensuring clicks hit exact physical pixel coordinates on secondary and scaled displays.
+
+---
+
 ## [0.3.1] - 2026-10-30
 
 ### Fixed

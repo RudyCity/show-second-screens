@@ -20,6 +20,15 @@ namespace ShowSecondScreens.Input
         [DllImport("user32.dll")]
         private static extern void mouse_event(uint dwFlags, int dx, int dy, uint dwData, UIntPtr dwExtraInfo);
 
+        [DllImport("user32.dll", SetLastError = true)]
+        private static extern bool SetProcessDPIAware();
+
+        [DllImport("shcore.dll")]
+        private static extern int SetProcessDpiAwareness(int awareness);
+
+        [DllImport("user32.dll", SetLastError = true)]
+        private static extern bool SetProcessDpiAwarenessContext(IntPtr dpiContext);
+
         [StructLayout(LayoutKind.Sequential)]
         public struct POINT
         {
@@ -40,6 +49,17 @@ namespace ShowSecondScreens.Input
 
         public static void Main(string[] args)
         {
+            try
+            {
+                // Enable Per-Monitor V2 DPI awareness so SetCursorPos matches physical desktop bounds exactly
+                SetProcessDpiAwarenessContext(new IntPtr(-4));
+            }
+            catch
+            {
+                try { SetProcessDpiAwareness(2); }
+                catch { try { SetProcessDPIAware(); } catch { } }
+            }
+
             if (args != null && args.Length > 0)
             {
                 ExecuteCommand(string.Join(" ", args));
