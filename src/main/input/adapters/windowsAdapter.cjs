@@ -10,8 +10,25 @@ class WindowsAdapter extends BaseAdapter {
   constructor() {
     super();
     this.process = null;
-    this.injectorPath = path.resolve(__dirname, '../../../../bin/injector.exe');
+    this.injectorPath = this.resolveInjectorPath();
     this.init();
+  }
+
+  resolveInjectorPath() {
+    const candidates = [];
+    if (process.resourcesPath) {
+      candidates.push(path.join(process.resourcesPath, 'bin', 'injector.exe'));
+      candidates.push(path.join(process.resourcesPath, 'app.asar.unpacked', 'bin', 'injector.exe'));
+    }
+    candidates.push(path.resolve(__dirname, '../../../../bin/injector.exe'));
+    candidates.push(path.resolve(process.cwd(), 'bin/injector.exe'));
+
+    for (const candidate of candidates) {
+      if (fs.existsSync(candidate)) {
+        return candidate;
+      }
+    }
+    return candidates[0] || path.resolve(__dirname, '../../../../bin/injector.exe');
   }
 
   init() {

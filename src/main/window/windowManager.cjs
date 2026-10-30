@@ -1,5 +1,6 @@
 const { BrowserWindow, screen } = require('electron');
 const path = require('path');
+const fs = require('fs');
 
 /**
  * Window Manager for the floating target screen preview window.
@@ -23,6 +24,12 @@ class WindowManager {
     const winY = Math.round(y + (height - winHeight) / 2);
 
     const isMac = process.platform === 'darwin';
+    const iconCandidates = [
+      path.join(__dirname, '../../../assets/icon.png'),
+      path.join(process.resourcesPath || '', 'assets/icon.png'),
+      path.join(__dirname, '../../../build/icon.png'),
+    ];
+    const windowIcon = iconCandidates.find((p) => fs.existsSync(p));
 
     this.mainWindow = new BrowserWindow({
       title: 'Show Second Screens - Target Preview & Remote',
@@ -33,6 +40,7 @@ class WindowManager {
       minWidth: 420,
       minHeight: 280,
       show: true,
+      icon: windowIcon,
       frame: true,
       titleBarStyle: isMac ? 'hiddenInset' : 'default',
       autoHideMenuBar: true,

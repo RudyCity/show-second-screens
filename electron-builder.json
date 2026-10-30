@@ -1,0 +1,37 @@
+{
+  "appId": "com.antigravity.showsecondscreens",
+  "productName": "Show Second Screens",
+  "directories": {
+    "output": "dist"
+  },
+  "files": [
+    "src/**/*",
+    "assets/icon.png",
+    "package.json"
+  ],
+  "extraResources": [
+    {
+      "from": "bin/injector.exe",
+      "to": "bin/injector.exe"
+    }
+  ],
+  "asar": true,
+  "asarUnpack": [
+    "bin/**/*"
+  ],
+  "win": {
+    "icon": "assets/icon.ico",
+    "target": [
+      {
+        "target": "portable",
+        "arch": [
+          "x64"
+        ]
+      }
+    ],
+    "requestedExecutionLevel": "asInvoker"
+  },
+  "portable": {
+    "artifactName": "Show-Second-Screens-Portable-${version}.${ext}"
+  }
+}

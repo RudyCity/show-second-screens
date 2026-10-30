@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.3.0] - 2026-10-30
+
+### Added
+- **Standalone Portable Executable (`dist/Show-Second-Screens-Portable-0.3.0.exe`)**:
+  - Full single-file Windows x64 portable executable that runs immediately without installation or administrative setup wizards.
+  - Zero-footprint sandbox execution with embedded Chromium and Electron runtimes.
+- **Packaged Native Binary Resolution** (`src/main/input/adapters/windowsAdapter.cjs`):
+  - Added multi-tier injector path resolution supporting `process.resourcesPath`, `app.asar.unpacked`, and development relative paths to ensure `injector.exe` runs flawlessly inside packaged portable bundles.
+- **Custom High-Resolution Application Icon**:
+  - Generated sleek dark terminal & neon green app icons (`build/icon.ico` and `build/icon.png`) via `scripts/generate-icon.ps1`.
+  - Configured icon embedding in `electron-builder.json` and dynamically bound to `BrowserWindow`.
+- **Packaging Scripts & Tooling**:
+  - Added `electron-builder` configuration (`electron-builder.json`) configured for Windows `portable` target with `extraResources` and `asarUnpack`.
+  - Added `npm run build:portable` and `npm run dist` scripts with automatic `prebuild:portable` hook.
+
+---
+
 ## [0.2.0] - 2026-10-27
 
 ### Added
