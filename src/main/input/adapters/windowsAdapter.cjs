@@ -66,24 +66,29 @@ class WindowsAdapter extends BaseAdapter {
     }
   }
 
-  ghostClick(x, y, button = 'left') {
-    this.send(`ghostclick ${Math.round(x)} ${Math.round(y)} ${button}`);
+  ghostClick(x, y, button = 'left', origX = null, origY = null) {
+    const origStr = origX != null && origY != null ? ` ${Math.round(origX)} ${Math.round(origY)}` : '';
+    this.send(`ghostclick ${Math.round(x)} ${Math.round(y)} ${button}${origStr}`);
   }
 
-  ghostDoubleClick(x, y) {
-    this.send(`ghostdblclick ${Math.round(x)} ${Math.round(y)}`);
+  ghostDoubleClick(x, y, origX = null, origY = null) {
+    const origStr = origX != null && origY != null ? ` ${Math.round(origX)} ${Math.round(origY)}` : '';
+    this.send(`ghostdblclick ${Math.round(x)} ${Math.round(y)}${origStr}`);
   }
 
-  ghostWheel(x, y, delta) {
-    this.send(`ghostwheel ${Math.round(x)} ${Math.round(y)} ${Math.round(delta)}`);
+  ghostWheel(x, y, delta, origX = null, origY = null) {
+    const origStr = origX != null && origY != null ? ` ${Math.round(origX)} ${Math.round(origY)}` : '';
+    this.send(`ghostwheel ${Math.round(x)} ${Math.round(y)} ${Math.round(delta)}${origStr}`);
   }
 
-  ghostDown(x, y, button = 'left') {
-    this.send(`ghostdown ${Math.round(x)} ${Math.round(y)} ${button}`);
+  ghostDown(x, y, button = 'left', origX = null, origY = null) {
+    const origStr = origX != null && origY != null ? ` ${Math.round(origX)} ${Math.round(origY)}` : '';
+    this.send(`ghostdown ${Math.round(x)} ${Math.round(y)} ${button}${origStr}`);
   }
 
-  ghostUp(x, y, button = 'left') {
-    this.send(`ghostup ${Math.round(x)} ${Math.round(y)} ${button}`);
+  ghostUp(x, y, button = 'left', origX = null, origY = null) {
+    const origStr = origX != null && origY != null ? ` ${Math.round(origX)} ${Math.round(origY)}` : '';
+    this.send(`ghostup ${Math.round(x)} ${Math.round(y)} ${button}${origStr}`);
   }
 
   ghostDrag(x, y) {

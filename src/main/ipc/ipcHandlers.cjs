@@ -13,24 +13,38 @@ function registerIpcHandlers({ displayService, inputService, windowManager }) {
   ipcMain.on('input:send-event', (event, inputEvent) => {
     if (!inputEvent || typeof inputEvent !== 'object') return;
 
-    const { type, x, y, button, deltaY, mode = 'ghost' } = inputEvent;
+    const { type, x, y, button, deltaY, origX, origY, mode = 'ghost' } = inputEvent;
 
     if (mode === 'ghost') {
       switch (type) {
         case 'click':
-          inputService.ghostClick(x, y, button || 'left');
+          inputService.ghostClick(x, y, button || 'left', origX, origY);
+          if (windowManager) {
+            const win = windowManager.getWindow();
+            if (win && !win.isDestroyed()) win.focus();
+          }
           break;
         case 'dblclick':
-          inputService.ghostDoubleClick(x, y);
+          inputService.ghostDoubleClick(x, y, origX, origY);
+          if (windowManager) {
+            const win = windowManager.getWindow();
+            if (win && !win.isDestroyed()) win.focus();
+          }
           break;
         case 'wheel':
-          inputService.ghostWheel(x, y, deltaY || 0);
+          inputService.ghostWheel(x, y, deltaY || 0, origX, origY);
           break;
+        case 'dragstart':
         case 'mousedown':
-          inputService.ghostDown(x, y, button || 'left');
+          inputService.ghostDown(x, y, button || 'left', origX, origY);
           break;
+        case 'dragend':
         case 'mouseup':
-          inputService.ghostUp(x, y, button || 'left');
+          inputService.ghostUp(x, y, button || 'left', origX, origY);
+          if (windowManager) {
+            const win = windowManager.getWindow();
+            if (win && !win.isDestroyed()) win.focus();
+          }
           break;
         case 'drag':
           inputService.ghostDrag(x, y);

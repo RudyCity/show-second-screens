@@ -333,6 +333,8 @@
 
     // Interactive Input Simulation Listener on Video Preview
     let isMouseDown = false;
+    let isDragging = false;
+    let mouseDownData = null;
     let throttleTimeout = null;
 
     screenVideo.addEventListener('mousemove', (e) => {
@@ -344,15 +346,37 @@
       cursorMarker.style.left = `${e.clientX}px`;
       cursorMarker.style.top = `${e.clientY}px`;
 
-      // In Ghost mode: cursor stays on the current desktop during hover!
+      // In Ghost mode: cursor stays 100% on current desktop during hover and clicks!
       if (cursorMode === 'ghost') {
-        if (isMouseDown) {
-          window.electronAPI.sendInput({
-            type: 'drag',
-            x: coords.targetX,
-            y: coords.targetY,
-            mode: 'ghost',
-          });
+        if (isMouseDown && mouseDownData) {
+          const dx = e.clientX - mouseDownData.clientX;
+          const dy = e.clientY - mouseDownData.clientY;
+          const dist = Math.hypot(dx, dy);
+
+          // Initiate drag only when moved beyond 5px threshold
+          if (!isDragging && dist > 5) {
+            isDragging = true;
+            window.electronAPI.sendInput({
+              type: 'dragstart',
+              button: mouseDownData.button,
+              x: mouseDownData.targetX,
+              y: mouseDownData.targetY,
+              origX: mouseDownData.screenX,
+              origY: mouseDownData.screenY,
+              mode: 'ghost',
+            });
+          }
+
+          if (isDragging) {
+            window.electronAPI.sendInput({
+              type: 'drag',
+              x: coords.targetX,
+              y: coords.targetY,
+              origX: e.screenX,
+              origY: e.screenY,
+              mode: 'ghost',
+            });
+          }
         }
         return;
       }
@@ -371,30 +395,35 @@
       }
     });
 
-    screenVideo.addEventListener('mouseleave', () => {
-      cursorMarker.style.display = 'none';
-      if (isMouseDown) {
-        isMouseDown = false;
-        if (activeDisplay) {
-          window.electronAPI.sendInput({ type: 'mouseup', button: 'left', x: 0, y: 0, mode: cursorMode });
-        }
-      }
-    });
-
     screenVideo.addEventListener('mousedown', (e) => {
       e.preventDefault();
       const coords = calculateTargetCoordinates(e);
       if (!coords) return;
 
-      isMouseDown = true;
       const button = e.button === 2 ? 'right' : e.button === 1 ? 'middle' : 'left';
-      window.electronAPI.sendInput({
-        type: 'mousedown',
+      isMouseDown = true;
+      isDragging = false;
+      mouseDownData = {
+        clientX: e.clientX,
+        clientY: e.clientY,
+        screenX: e.screenX,
+        screenY: e.screenY,
+        targetX: coords.targetX,
+        targetY: coords.targetY,
         button: button,
-        x: coords.targetX,
-        y: coords.targetY,
-        mode: cursorMode,
-      });
+      };
+
+      if (cursorMode === 'direct') {
+        window.electronAPI.sendInput({
+          type: 'mousedown',
+          button: button,
+          x: coords.targetX,
+          y: coords.targetY,
+          mode: 'direct',
+        });
+      }
+      // Note: In Ghost mode, do NOT send mousedown or warp cursor to target screen!
+      // This ensures clicks never warp the physical cursor away from the preview window.
     });
 
     screenVideo.addEventListener('mouseup', (e) => {
@@ -402,29 +431,54 @@
       const coords = calculateTargetCoordinates(e);
       if (!coords) return;
 
-      isMouseDown = false;
       const button = e.button === 2 ? 'right' : e.button === 1 ? 'middle' : 'left';
-      window.electronAPI.sendInput({
-        type: 'mouseup',
-        button: button,
-        x: coords.targetX,
-        y: coords.targetY,
-        mode: cursorMode,
-      });
+
+      if (cursorMode === 'ghost') {
+        if (isDragging) {
+          window.electronAPI.sendInput({
+            type: 'dragend',
+            button: button,
+            x: coords.targetX,
+            y: coords.targetY,
+            origX: e.screenX,
+            origY: e.screenY,
+            mode: 'ghost',
+          });
+        } else {
+          // Normal clean click: single atomic injection at target coordinates,
+          // instantly restoring the physical cursor to (e.screenX, e.screenY).
+          window.electronAPI.sendInput({
+            type: 'click',
+            button: button,
+            x: coords.targetX,
+            y: coords.targetY,
+            origX: e.screenX,
+            origY: e.screenY,
+            mode: 'ghost',
+          });
+        }
+      } else {
+        window.electronAPI.sendInput({
+          type: 'mouseup',
+          button: button,
+          x: coords.targetX,
+          y: coords.targetY,
+          mode: 'direct',
+        });
+      }
+
+      isMouseDown = false;
+      isDragging = false;
+      mouseDownData = null;
     });
 
+    // Suppress default/redundant browser click & contextmenu events since mouseup handles them
     screenVideo.addEventListener('click', (e) => {
       e.preventDefault();
-      const coords = calculateTargetCoordinates(e);
-      if (!coords) return;
+    });
 
-      window.electronAPI.sendInput({
-        type: 'click',
-        button: 'left',
-        x: coords.targetX,
-        y: coords.targetY,
-        mode: cursorMode,
-      });
+    screenVideo.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
     });
 
     screenVideo.addEventListener('dblclick', (e) => {
@@ -436,20 +490,8 @@
         type: 'dblclick',
         x: coords.targetX,
         y: coords.targetY,
-        mode: cursorMode,
-      });
-    });
-
-    screenVideo.addEventListener('contextmenu', (e) => {
-      e.preventDefault();
-      const coords = calculateTargetCoordinates(e);
-      if (!coords) return;
-
-      window.electronAPI.sendInput({
-        type: 'click',
-        button: 'right',
-        x: coords.targetX,
-        y: coords.targetY,
+        origX: e.screenX,
+        origY: e.screenY,
         mode: cursorMode,
       });
     });
@@ -464,9 +506,29 @@
         deltaY: e.deltaY,
         x: coords.targetX,
         y: coords.targetY,
+        origX: e.screenX,
+        origY: e.screenY,
         mode: cursorMode,
       });
     }, { passive: false });
+
+    screenVideo.addEventListener('mouseleave', () => {
+      cursorMarker.style.display = 'none';
+      if (isDragging && activeDisplay && mouseDownData) {
+        window.electronAPI.sendInput({
+          type: 'dragend',
+          button: 'left',
+          x: mouseDownData.targetX,
+          y: mouseDownData.targetY,
+          origX: mouseDownData.screenX,
+          origY: mouseDownData.screenY,
+          mode: cursorMode,
+        });
+      }
+      isMouseDown = false;
+      isDragging = false;
+      mouseDownData = null;
+    });
 
     // Stream Setup & Display Switching
     async function switchDisplay(display) {

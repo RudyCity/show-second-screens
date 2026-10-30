@@ -26,24 +26,24 @@ class InputService {
     }
   }
 
-  ghostClick(x, y, button = 'left') {
-    this.adapter.ghostClick(x, y, button);
+  ghostClick(x, y, button = 'left', origX = null, origY = null) {
+    this.adapter.ghostClick(x, y, button, origX, origY);
   }
 
-  ghostDoubleClick(x, y) {
-    this.adapter.ghostDoubleClick(x, y);
+  ghostDoubleClick(x, y, origX = null, origY = null) {
+    this.adapter.ghostDoubleClick(x, y, origX, origY);
   }
 
-  ghostWheel(x, y, delta) {
-    this.adapter.ghostWheel(x, y, delta);
+  ghostWheel(x, y, delta, origX = null, origY = null) {
+    this.adapter.ghostWheel(x, y, delta, origX, origY);
   }
 
-  ghostDown(x, y, button = 'left') {
-    this.adapter.ghostDown(x, y, button);
+  ghostDown(x, y, button = 'left', origX = null, origY = null) {
+    this.adapter.ghostDown(x, y, button, origX, origY);
   }
 
-  ghostUp(x, y, button = 'left') {
-    this.adapter.ghostUp(x, y, button);
+  ghostUp(x, y, button = 'left', origX = null, origY = null) {
+    this.adapter.ghostUp(x, y, button, origX, origY);
   }
 
   ghostDrag(x, y) {

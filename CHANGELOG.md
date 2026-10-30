@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.3.1] - 2026-10-30
+
+### Fixed
+- **Cursor Never Enters Target Screen on Click (Ghost Cursor Perfected)**:
+  - Eliminated premature `mousedown` warping that previously teleported the physical cursor to the target display during regular clicks.
+  - Implemented Drag-Threshold Detection (5px) in `src/renderer/index.html`: clicks and double-clicks are dispatched atomically without ever triggering mouse down holds or drag moves on the target display.
+  - Passed exact local screen origin (`screenX`, `screenY`) to `ghostclick`, `ghostdblclick`, `ghostwheel`, and drag routines to guarantee 100% accurate cursor restoration without depending on OS cursor state during window activation.
+  - Added double-restoration and micro-delays in `injector.cs` to defeat Windows asynchronous window activation cursor pull.
+  - Maintained Electron window focus post-click so the local preview window retains keyboard and mouse focus seamlessly.
+
+---
+
 ## [0.3.0] - 2026-10-30
 
 ### Added

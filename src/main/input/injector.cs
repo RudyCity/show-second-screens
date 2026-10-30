@@ -83,12 +83,29 @@ namespace ShowSecondScreens.Input
                             int ty = int.Parse(parts[2]);
                             string btn = parts.Length >= 4 ? parts[3].ToLowerInvariant() : "left";
 
-                            POINT orig;
-                            GetCursorPos(out orig);
+                            int origX = 0, origY = 0;
+                            bool hasOrig = false;
+                            if (parts.Length >= 6)
+                            {
+                                origX = int.Parse(parts[4]);
+                                origY = int.Parse(parts[5]);
+                                hasOrig = true;
+                            }
+
+                            if (!hasOrig)
+                            {
+                                POINT orig;
+                                GetCursorPos(out orig);
+                                origX = orig.X;
+                                origY = orig.Y;
+                            }
 
                             SetCursorPos(tx, ty);
                             FireClick(btn);
-                            SetCursorPos(orig.X, orig.Y);
+                            SetCursorPos(origX, origY);
+
+                            System.Threading.Thread.Sleep(5);
+                            SetCursorPos(origX, origY);
                         }
                         break;
 
@@ -98,13 +115,31 @@ namespace ShowSecondScreens.Input
                             int tx = int.Parse(parts[1]);
                             int ty = int.Parse(parts[2]);
 
-                            POINT orig;
-                            GetCursorPos(out orig);
+                            int origX = 0, origY = 0;
+                            bool hasOrig = false;
+                            if (parts.Length >= 5)
+                            {
+                                origX = int.Parse(parts[3]);
+                                origY = int.Parse(parts[4]);
+                                hasOrig = true;
+                            }
+
+                            if (!hasOrig)
+                            {
+                                POINT orig;
+                                GetCursorPos(out orig);
+                                origX = orig.X;
+                                origY = orig.Y;
+                            }
 
                             SetCursorPos(tx, ty);
                             FireClick("left");
+                            System.Threading.Thread.Sleep(25);
                             FireClick("left");
-                            SetCursorPos(orig.X, orig.Y);
+                            SetCursorPos(origX, origY);
+
+                            System.Threading.Thread.Sleep(5);
+                            SetCursorPos(origX, origY);
                         }
                         break;
 
@@ -115,12 +150,29 @@ namespace ShowSecondScreens.Input
                             int ty = int.Parse(parts[2]);
                             int delta = int.Parse(parts[3]);
 
-                            POINT orig;
-                            GetCursorPos(out orig);
+                            int origX = 0, origY = 0;
+                            bool hasOrig = false;
+                            if (parts.Length >= 6)
+                            {
+                                origX = int.Parse(parts[4]);
+                                origY = int.Parse(parts[5]);
+                                hasOrig = true;
+                            }
+
+                            if (!hasOrig)
+                            {
+                                POINT orig;
+                                GetCursorPos(out orig);
+                                origX = orig.X;
+                                origY = orig.Y;
+                            }
 
                             SetCursorPos(tx, ty);
                             mouse_event(MOUSEEVENTF_WHEEL, 0, 0, (uint)delta, UIntPtr.Zero);
-                            SetCursorPos(orig.X, orig.Y);
+                            SetCursorPos(origX, origY);
+
+                            System.Threading.Thread.Sleep(5);
+                            SetCursorPos(origX, origY);
                         }
                         break;
 
@@ -131,7 +183,15 @@ namespace ShowSecondScreens.Input
                             int ty = int.Parse(parts[2]);
                             string btn = parts.Length >= 4 ? parts[3].ToLowerInvariant() : "left";
 
-                            GetCursorPos(out _savedOrigin);
+                            if (parts.Length >= 6)
+                            {
+                                _savedOrigin.X = int.Parse(parts[4]);
+                                _savedOrigin.Y = int.Parse(parts[5]);
+                            }
+                            else
+                            {
+                                GetCursorPos(out _savedOrigin);
+                            }
                             _isDragging = true;
 
                             SetCursorPos(tx, ty);
@@ -151,6 +211,8 @@ namespace ShowSecondScreens.Input
 
                             if (_isDragging)
                             {
+                                SetCursorPos(_savedOrigin.X, _savedOrigin.Y);
+                                System.Threading.Thread.Sleep(5);
                                 SetCursorPos(_savedOrigin.X, _savedOrigin.Y);
                                 _isDragging = false;
                             }
