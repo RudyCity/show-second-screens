@@ -557,6 +557,10 @@
             mandatory: {
               chromeMediaSource: 'desktop',
               chromeMediaSourceId: display.sourceId,
+              minWidth: display.bounds.width,
+              maxWidth: display.bounds.width,
+              minHeight: display.bounds.height,
+              maxHeight: display.bounds.height,
               minFrameRate: 30,
               maxFrameRate: 60,
             },

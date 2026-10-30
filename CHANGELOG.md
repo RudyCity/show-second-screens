@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.3.3] - 2026-10-30
+
+### Fixed
+- **Physical Multi-Monitor Ground Truth Geometry**:
+  - Replaced Electron's DPI-virtualized DIP monitor bounds with true physical desktop coordinates queried directly via Win32 `EnumDisplayMonitors` / `GetMonitorInfo` in `DisplayService`.
+  - Correlated Chromium `desktopCapturer` video sources with exact physical display rectangles, fixing large multi-monitor click misalignments caused by mixed DPI scaling (e.g. 150% primary monitor with 100% secondary monitors).
+  - Configured native resolution media stream constraints in `getUserMedia` matching physical display dimensions.
+  - Added `getmonitors` query command to `injector.cs` and realistic 10ms mouse button depression time to guarantee OS event pump registration.
+
+---
+
 ## [0.3.2] - 2026-10-30
 
 ### Removed

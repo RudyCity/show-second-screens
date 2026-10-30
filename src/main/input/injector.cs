@@ -14,6 +14,9 @@ namespace ShowSecondScreens.Input
         [DllImport("user32.dll", SetLastError = true)]
         private static extern bool SetCursorPos(int X, int Y);
 
+        [DllImport("kernel32.dll")]
+        private static extern bool AttachConsole(int dwProcessId);
+
         [DllImport("user32.dll")]
         private static extern bool GetCursorPos(out POINT lpPoint);
 
@@ -28,6 +31,57 @@ namespace ShowSecondScreens.Input
 
         [DllImport("user32.dll", SetLastError = true)]
         private static extern bool SetProcessDpiAwarenessContext(IntPtr dpiContext);
+
+        [DllImport("user32.dll")]
+        private static extern bool EnumDisplayMonitors(IntPtr hdc, IntPtr lprcClip, MonitorEnumProc lpfnEnum, IntPtr dwData);
+
+        private delegate bool MonitorEnumProc(IntPtr hMonitor, IntPtr hdcMonitor, ref RECT lprcMonitor, IntPtr dwData);
+
+        [DllImport("user32.dll", CharSet = CharSet.Auto)]
+        private static extern bool GetMonitorInfo(IntPtr hMonitor, ref MONITORINFOEX lpmi);
+
+        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
+        private struct MONITORINFOEX
+        {
+            public int cbSize;
+            public RECT rcMonitor;
+            public RECT rcWork;
+            public int dwFlags;
+            [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 32)]
+            public string szDevice;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct RECT
+        {
+            public int left;
+            public int top;
+            public int right;
+            public int bottom;
+        }
+
+        private static string GetMonitorsJson()
+        {
+            var list = new System.Collections.Generic.List<string>();
+            int idx = 0;
+            EnumDisplayMonitors(IntPtr.Zero, IntPtr.Zero, (IntPtr hMon, IntPtr hdc, ref RECT rc, IntPtr data) =>
+            {
+                var mi = new MONITORINFOEX();
+                mi.cbSize = Marshal.SizeOf(typeof(MONITORINFOEX));
+                if (GetMonitorInfo(hMon, ref mi))
+                {
+                    int w = mi.rcMonitor.right - mi.rcMonitor.left;
+                    int h = mi.rcMonitor.bottom - mi.rcMonitor.top;
+                    bool isPrimary = (mi.dwFlags & 1) != 0;
+                    string dev = (mi.szDevice ?? "").Replace("\\", "\\\\");
+                    list.Add(string.Format("{{\"index\":{0},\"device\":\"{1}\",\"left\":{2},\"top\":{3},\"right\":{4},\"bottom\":{5},\"width\":{6},\"height\":{7},\"isPrimary\":{8}}}",
+                        idx++, dev, mi.rcMonitor.left, mi.rcMonitor.top, mi.rcMonitor.right, mi.rcMonitor.bottom, w, h, isPrimary ? "true" : "false"));
+                }
+                return true;
+            }, IntPtr.Zero);
+
+            return "[" + string.Join(",", list.ToArray()) + "]";
+        }
 
         [StructLayout(LayoutKind.Sequential)]
         public struct POINT
@@ -49,6 +103,7 @@ namespace ShowSecondScreens.Input
 
         public static void Main(string[] args)
         {
+            try { AttachConsole(-1); } catch { }
             try
             {
                 // Enable Per-Monitor V2 DPI awareness so SetCursorPos matches physical desktop bounds exactly
@@ -95,6 +150,11 @@ namespace ShowSecondScreens.Input
 
                 switch (action)
                 {
+                    case "getmonitors":
+                    case "monitors":
+                        Console.WriteLine(GetMonitorsJson());
+                        break;
+
                     // Ghost Click: executes remote click at target without moving the physical cursor away
                     case "ghostclick":
                         if (parts.Length >= 3)
@@ -103,29 +163,15 @@ namespace ShowSecondScreens.Input
                             int ty = int.Parse(parts[2]);
                             string btn = parts.Length >= 4 ? parts[3].ToLowerInvariant() : "left";
 
-                            int origX = 0, origY = 0;
-                            bool hasOrig = false;
-                            if (parts.Length >= 6)
-                            {
-                                origX = int.Parse(parts[4]);
-                                origY = int.Parse(parts[5]);
-                                hasOrig = true;
-                            }
-
-                            if (!hasOrig)
-                            {
-                                POINT orig;
-                                GetCursorPos(out orig);
-                                origX = orig.X;
-                                origY = orig.Y;
-                            }
+                            POINT orig;
+                            GetCursorPos(out orig);
 
                             SetCursorPos(tx, ty);
                             FireClick(btn);
-                            SetCursorPos(origX, origY);
+                            SetCursorPos(orig.X, orig.Y);
 
                             System.Threading.Thread.Sleep(5);
-                            SetCursorPos(origX, origY);
+                            SetCursorPos(orig.X, orig.Y);
                         }
                         break;
 
@@ -299,6 +345,7 @@ namespace ShowSecondScreens.Input
         private static void FireClick(string btn)
         {
             FireDown(btn);
+            System.Threading.Thread.Sleep(10);
             FireUp(btn);
         }
 
