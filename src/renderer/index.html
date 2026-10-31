@@ -324,7 +324,9 @@
     if (btnDonate) {
       btnDonate.addEventListener('click', (e) => {
         e.preventDefault();
-        if (window.electronAPI && typeof window.electronAPI.openExternal === 'function') {
+        if (window.electronAPI && typeof window.electronAPI.openDonate === 'function') {
+          window.electronAPI.openDonate();
+        } else if (window.electronAPI && typeof window.electronAPI.openExternal === 'function') {
           window.electronAPI.openExternal('https://ko-fi.com/rudycity');
         }
       });

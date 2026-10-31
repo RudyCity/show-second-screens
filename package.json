@@ -1,6 +1,6 @@
 {
   "name": "show-second-screens",
-  "version": "0.3.8",
+  "version": "0.3.9",
   "description": "Interactive real-time preview and remote control window for target displays with accurate coordinate mapping, moving, and resizing.",
   "main": "src/main/index.cjs",
   "scripts": {

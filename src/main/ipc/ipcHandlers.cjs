@@ -95,6 +95,12 @@ function registerIpcHandlers({ displayService, inputService, windowManager }) {
       shell.openExternal(url);
     }
   });
+
+  ipcMain.on('system:open-donate', () => {
+    if (windowManager && typeof windowManager.openDonateWindow === 'function') {
+      windowManager.openDonateWindow();
+    }
+  });
 }
 
 module.exports = { registerIpcHandlers };

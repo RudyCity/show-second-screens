@@ -84,7 +84,11 @@ class TrayManager {
       {
         label: '☕ Support via Ko-fi',
         click: () => {
-          shell.openExternal('https://ko-fi.com/rudycity');
+          if (this.windowManager && typeof this.windowManager.openDonateWindow === 'function') {
+            this.windowManager.openDonateWindow();
+          } else {
+            shell.openExternal('https://ko-fi.com/rudycity');
+          }
         },
       },
       { type: 'separator' },
