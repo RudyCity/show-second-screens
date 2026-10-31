@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.3.5] - 2026-10-31
+
+### Added
+- **Single Instance Conflict Detection & Kill Confirmation**:
+  - Implemented `SingleInstanceManager` (`src/main/instance/singleInstanceManager.cjs`) to enforce single-instance lifecycle across portable executables and normal application launches.
+  - When launching the application while an existing instance is already running (e.g. background tray or frozen process), displays a native confirmation dialog:
+    - *"Aplikasi Show Second Screens sudah berjalan. Apakah Anda ingin menghentikan (kill) aplikasi yang sedang berjalan dan membuka yang baru?"*
+    - Buttons: `Hentikan & Buka Baru` (default) dan `Batal`.
+  - When confirmed, cleanly terminates existing application processes (`Show Second Screens.exe`, `Show-Second-Screens-Portable-*.exe`, and any orphaned `injector.exe`) using process-tree termination (`taskkill /F /PID <pid> /T`), preserving the current launching process and re-acquiring the instance lock or relaunching fresh.
+  - If cancelled, automatically brings the existing instance's window to focus (`win.restore()`, `win.show()`, `win.focus()`) and exits the secondary launcher.
+- **Standalone Portable Executable (`dist/Show-Second-Screens-Portable-0.3.5.exe`)**:
+  - Bundled release with single instance detection and conflict resolution.
+
+---
+
 ## [0.3.4] - 2026-10-30
 
 ### Added

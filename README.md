@@ -6,7 +6,7 @@
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 [![Platform: Windows | macOS | Linux](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux-green.svg)](#cross-platform-architecture)
 [![Electron: v33+](https://img.shields.io/badge/Electron-v33+-47848F.svg)](https://www.electronjs.org/)
-[![Version: 0.3.4](https://img.shields.io/badge/Version-0.3.4-emerald.svg)](CHANGELOG.md)
+[![Version: 0.3.5](https://img.shields.io/badge/Version-0.3.5-emerald.svg)](CHANGELOG.md)
 
 ---
 
@@ -50,6 +50,11 @@ Ketika bekerja dengan banyak monitor atau layar virtual (*Virtual Display Driver
 - **Windows**: Menggunakan native Win32 C# daemon (`bin/injector.exe`) dengan `SendInput` & `SetCursorPos`.
 - **macOS**: Menggunakan CoreGraphics / AppleScript / `cliclick` adapter dengan window styling `hiddenInset`.
 - **Linux**: Menggunakan `xdotool` (X11) dan `ydotool` (Wayland) dengan pemulihan lokasi kursor otomatis.
+
+### 6. 🛡️ Single Instance & Smart Kill Confirmation
+- Mencegah konflik beberapa proses portable atau aplikasi yang berjalan bersamaan di sistem.
+- Menampilkan dialog konfirmasi interaktif saat instance lain terdeteksi (misalnya berjalan di background/tray atau proses macet): user dapat memilih untuk menghentikan (*kill*) proses lama secara bersih atau membatalkan dan fokus ke jendela aktif.
+- Membersihkan proses induk (`Show Second Screens.exe`), wrapper portable, dan subproses daemon (`injector.exe`) secara tuntas menggunakan *process-tree termination*.
 
 ---
 

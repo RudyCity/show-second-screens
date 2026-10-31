@@ -4,23 +4,46 @@ const { DisplayService } = require('./capture/displayService.cjs');
 const { InputService } = require('./input/inputService.cjs');
 const { TrayManager } = require('./tray/trayManager.cjs');
 const { registerIpcHandlers } = require('./ipc/ipcHandlers.cjs');
+const { SingleInstanceManager } = require('./instance/singleInstanceManager.cjs');
 
 // Configure Chromium flags for optimized screen capture and reduced log noise
 app.commandLine.appendSwitch('log-level', '3');
 app.commandLine.appendSwitch('disable-features', 'CalculateNativeWinOcclusion');
 
-// Application Core Services
-const windowManager = new WindowManager();
-const displayService = new DisplayService();
-const inputService = new InputService();
-const trayManager = new TrayManager(windowManager);
+// Initialize Single Instance Management & Lock
+const instanceManager = new SingleInstanceManager();
+const gotLock = instanceManager.requestInitialLock();
 
-app.whenReady().then(() => {
+// Application Core Services (instantiated on active instance confirmation)
+let windowManager = null;
+let displayService = null;
+let inputService = null;
+let trayManager = null;
+
+app.whenReady().then(async () => {
+  // If another instance is running, prompt user to confirm killing the existing instance
+  if (!gotLock) {
+    const canProceed = await instanceManager.handleLockConflict();
+    if (!canProceed) {
+      return;
+    }
+  }
+
   const { session } = require('electron');
   session.defaultSession.setPermissionRequestHandler((webContents, permission, callback) => {
     callback(true);
   });
 
+  // Instantiate application services
+  windowManager = new WindowManager();
+  displayService = new DisplayService();
+  inputService = new InputService();
+  trayManager = new TrayManager(windowManager);
+
+  // Connect WindowManager to SingleInstanceManager for second-instance focus handling
+  instanceManager.setWindowManager(windowManager);
+
+  // Register IPC bridges and initialize system tray
   registerIpcHandlers({ displayService, inputService, windowManager });
   trayManager.init();
 
@@ -33,7 +56,7 @@ app.whenReady().then(() => {
   }
 
   app.on('activate', () => {
-    if (!windowManager.getWindow()) {
+    if (windowManager && !windowManager.getWindow()) {
       windowManager.createWindow();
     }
   });
@@ -48,6 +71,10 @@ app.on('window-all-closed', () => {
 });
 
 app.on('will-quit', () => {
-  trayManager.destroy();
-  inputService.dispose();
+  if (trayManager) {
+    trayManager.destroy();
+  }
+  if (inputService) {
+    inputService.dispose();
+  }
 });
