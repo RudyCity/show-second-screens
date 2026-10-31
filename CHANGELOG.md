@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.3.4] - 2026-10-30
+
+### Added
+- **Phantom PostMessage Injection Engine**:
+  - Implemented window-targeted message injection (`msgclick`, `msgdblclick`, `msgrclick`, `msgwheel`, `msgdown`, `msgup`, `msgmove`) via Win32 `PostMessage` (`WM_LBUTTONDOWN`, `WM_LBUTTONUP`, `WM_RBUTTONDOWN`, `WM_MOUSEMOVE`, `WM_MOUSEWHEEL`).
+  - Resolves target window hierarchy using `WindowFromPoint` and `ChildWindowFromPointEx` with physical coordinate conversion to client space (`ScreenToClient`).
+  - True zero cursor movement: eliminates cursor warping/flicker completely while interacting through the preview window.
+  - Automatic fallback to legacy ghost hardware injection on UIPI restriction or inaccessible window handle.
+  - Full drag-and-drop support with active button state tracking.
+- **Standalone Portable Executable (`dist/Show-Second-Screens-Portable-0.3.4.exe`)**:
+  - Rebuilt standalone portable distribution bundle featuring the updated injector daemon.
+
+---
+
 ## [0.3.3] - 2026-10-30
 
 ### Fixed

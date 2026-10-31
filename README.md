@@ -6,7 +6,7 @@
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 [![Platform: Windows | macOS | Linux](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux-green.svg)](#cross-platform-architecture)
 [![Electron: v33+](https://img.shields.io/badge/Electron-v33+-47848F.svg)](https://www.electronjs.org/)
-[![Version: 0.3.3](https://img.shields.io/badge/Version-0.3.3-emerald.svg)](CHANGELOG.md)
+[![Version: 0.3.4](https://img.shields.io/badge/Version-0.3.4-emerald.svg)](CHANGELOG.md)
 
 ---
 
@@ -23,9 +23,10 @@ Ketika bekerja dengan banyak monitor atau layar virtual (*Virtual Display Driver
 
 ## 🚀 Fitur Utama
 
-### 1. 🎯 Ghost Cursor Mode (Default)
+### 1. 🎯 Ghost Cursor & Phantom Injection Mode (Default)
+- **Phantom PostMessage Injection (Zero Cursor Movement)**: Di Windows, aksi klik kiri, double-click, klik kanan, drag, dan scroll dikirim langsung ke jendela target via Win32 `PostMessage` tanpa memindahkan kursor mouse fisik sama sekali. Kursor Anda tetap diam di preview window tanpa kedip atau lompat!
+- **Auto-Fallback Cerdas**: Jika window target berada dalam konteks hak akses terisolasi (UIPI), engine otomatis fallback ke mode hardware ghost injection dengan restorasi kursor mikrodetik (<0.5ms).
 - **Kursor Fisik Tetap di Tangan Anda**: Kursor mouse Anda tidak akan ditarik paksa keluar jendela menuju layar target saat mengarahkan mouse (*hover*).
-- **Restorasi Mikrodetik (<0.5ms)**: Saat melakukan klik, double-click, klik kanan, drag, atau scroll wheel, engine input mengeksekusi aksi di layar target dan seketika mengembalikan (*restore*) kursor ke posisi tangan Anda di jendela lokal.
 - **Opsi Mode Direct**: Tombol `🎯 Tetap di Sini` pada toolbar dapat di-toggle menjadi `🚀 Pindah Layar` jika Anda sengaja ingin memindahkan kursor fisik ke layar target.
 
 ### 2. 🖥️ Streaming Layar 60 FPS Latensi Ultra-Rendah
