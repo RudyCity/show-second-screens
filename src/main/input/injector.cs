@@ -480,7 +480,7 @@ namespace ShowSecondScreens.Input
 
             PostMessage(hwnd, WM_MOUSEMOVE, mk, lp);
             bool ok = PostMessage(hwnd, down, mk, lp);
-            System.Threading.Thread.Sleep(12);
+            System.Threading.Thread.Sleep(2);
             PostMessage(hwnd, up, IntPtr.Zero, lp);
             return ok;
         }
@@ -488,7 +488,7 @@ namespace ShowSecondScreens.Input
         private static bool PhantomDoubleClick(int tx, int ty)
         {
             if (!PhantomClick(tx, ty, "left")) return false;
-            System.Threading.Thread.Sleep(40);
+            System.Threading.Thread.Sleep(15);
 
             IntPtr hwnd; POINT c;
             if (!ResolveTarget(tx, ty, out hwnd, out c)) return false;
@@ -498,7 +498,7 @@ namespace ShowSecondScreens.Input
             IntPtr lp = MakeLParam(c.X, c.Y);
 
             bool ok = PostMessage(hwnd, down, mk, lp);
-            System.Threading.Thread.Sleep(12);
+            System.Threading.Thread.Sleep(2);
             PostMessage(hwnd, up, IntPtr.Zero, lp);
             return ok;
         }
@@ -562,7 +562,7 @@ namespace ShowSecondScreens.Input
             FireClick(btn);
             SetCursorPos(orig.X, orig.Y);
 
-            System.Threading.Thread.Sleep(5);
+            System.Threading.Thread.Sleep(2);
             SetCursorPos(orig.X, orig.Y);
         }
 
@@ -573,11 +573,11 @@ namespace ShowSecondScreens.Input
 
             SetCursorPos(tx, ty);
             FireClick("left");
-            System.Threading.Thread.Sleep(25);
+            System.Threading.Thread.Sleep(12);
             FireClick("left");
             SetCursorPos(orig.X, orig.Y);
 
-            System.Threading.Thread.Sleep(5);
+            System.Threading.Thread.Sleep(2);
             SetCursorPos(orig.X, orig.Y);
         }
 
@@ -590,14 +590,14 @@ namespace ShowSecondScreens.Input
             mouse_event(MOUSEEVENTF_WHEEL, 0, 0, (uint)delta, UIntPtr.Zero);
             SetCursorPos(orig.X, orig.Y);
 
-            System.Threading.Thread.Sleep(5);
+            System.Threading.Thread.Sleep(2);
             SetCursorPos(orig.X, orig.Y);
         }
 
         private static void FireClick(string btn)
         {
             FireDown(btn);
-            System.Threading.Thread.Sleep(10);
+            System.Threading.Thread.Sleep(2);
             FireUp(btn);
         }
 

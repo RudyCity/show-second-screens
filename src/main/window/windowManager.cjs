@@ -48,6 +48,9 @@ class WindowManager {
         nodeIntegration: false,
         contextIsolation: true,
         backgroundThrottling: false,
+        spellcheck: false,
+        webgl: true,
+        enableWebSQL: false,
       },
     });
 

@@ -194,6 +194,10 @@
       object-fit: contain;
       pointer-events: auto;
       display: block;
+      transform: translateZ(0);
+      will-change: transform;
+      backface-visibility: hidden;
+      contain: layout paint;
     }
 
     /* Empty/Connecting state */
@@ -268,6 +272,7 @@
     let lastFrameTime = performance.now();
     let frameCount = 0;
     let fps = 0;
+    let latestCoordText = null;
 
     // Elements
     const titlebar = document.getElementById('titlebar');
@@ -325,17 +330,37 @@
       });
     }
 
-    // Coordinate Mapping Math Engine
-    function calculateTargetCoordinates(e) {
-      if (!activeDisplay) return null;
+    // Cached Geometry for zero-overhead O(1) coordinate mapping
+    const cachedGeo = {
+      valid: false,
+      left: 0,
+      top: 0,
+      width: 0,
+      height: 0,
+      renderWidth: 0,
+      renderHeight: 0,
+      offsetX: 0,
+      offsetY: 0,
+      invRenderWidth: 0,
+      invRenderHeight: 0,
+    };
 
+    function updateCachedGeometry() {
+      if (!screenVideo || !activeDisplay) {
+        cachedGeo.valid = false;
+        return;
+      }
       const rect = screenVideo.getBoundingClientRect();
-      if (!rect || rect.width <= 0 || rect.height <= 0) return null;
-
-      // Intrinsic video dimensions from the active stream
+      if (!rect || rect.width <= 0 || rect.height <= 0) {
+        cachedGeo.valid = false;
+        return;
+      }
       const videoW = screenVideo.videoWidth || activeDisplay.bounds.width;
       const videoH = screenVideo.videoHeight || activeDisplay.bounds.height;
-      if (videoW <= 0 || videoH <= 0) return null;
+      if (videoW <= 0 || videoH <= 0) {
+        cachedGeo.valid = false;
+        return;
+      }
 
       const streamAspect = videoW / videoH;
       const elemAspect = rect.width / rect.height;
@@ -345,32 +370,56 @@
       let offsetX = 0;
       let offsetY = 0;
 
-      // Object-fit: contain letterbox & pillarbox computation
       if (elemAspect > streamAspect) {
-        // Element is wider than stream: pillarbox (black bars on left & right)
         renderWidth = rect.height * streamAspect;
         renderHeight = rect.height;
-        offsetX = (rect.width - renderWidth) / 2;
+        offsetX = (rect.width - renderWidth) * 0.5;
       } else {
-        // Element is taller than stream: letterbox (black bars on top & bottom)
         renderWidth = rect.width;
         renderHeight = rect.width / streamAspect;
-        offsetY = (rect.height - renderHeight) / 2;
+        offsetY = (rect.height - renderHeight) * 0.5;
       }
 
-      const clickX = e.clientX - rect.left;
-      const clickY = e.clientY - rect.top;
+      cachedGeo.valid = true;
+      cachedGeo.left = rect.left;
+      cachedGeo.top = rect.top;
+      cachedGeo.width = rect.width;
+      cachedGeo.height = rect.height;
+      cachedGeo.renderWidth = renderWidth;
+      cachedGeo.renderHeight = renderHeight;
+      cachedGeo.offsetX = offsetX;
+      cachedGeo.offsetY = offsetY;
+      cachedGeo.invRenderWidth = 1.0 / renderWidth;
+      cachedGeo.invRenderHeight = 1.0 / renderHeight;
+    }
 
-      const relX = clickX - offsetX;
-      const relY = clickY - offsetY;
+    window.addEventListener('resize', updateCachedGeometry, { passive: true });
+    if (window.ResizeObserver) {
+      const ro = new ResizeObserver(() => updateCachedGeometry());
+      ro.observe(viewportContainer);
+    }
+
+    // High-performance Coordinate Mapping Math Engine
+    function calculateTargetCoordinates(e) {
+      if (!activeDisplay) return null;
+      if (!cachedGeo.valid) {
+        updateCachedGeometry();
+        if (!cachedGeo.valid) return null;
+      }
+
+      const clickX = e.clientX - cachedGeo.left;
+      const clickY = e.clientY - cachedGeo.top;
+
+      const relX = clickX - cachedGeo.offsetX;
+      const relY = clickY - cachedGeo.offsetY;
 
       // Ignore interactions outside the rendered display content (black bars)
-      if (relX < 0 || relX > renderWidth || relY < 0 || relY > renderHeight) {
+      if (relX < 0 || relX > cachedGeo.renderWidth || relY < 0 || relY > cachedGeo.renderHeight) {
         return null;
       }
 
-      const u = Math.max(0, Math.min(1, relX / renderWidth));
-      const v = Math.max(0, Math.min(1, relY / renderHeight));
+      const u = relX * cachedGeo.invRenderWidth;
+      const v = relY * cachedGeo.invRenderHeight;
 
       const bounds = activeDisplay.bounds;
       const targetX = Math.round(bounds.x + u * bounds.width);
@@ -384,12 +433,28 @@
     let isDragging = false;
     let mouseDownData = null;
     let throttleTimeout = null;
+    let pendingDragPayload = null;
+    let dragRafScheduled = false;
+
+    function queueDragEvent(payload) {
+      pendingDragPayload = payload;
+      if (!dragRafScheduled) {
+        dragRafScheduled = true;
+        requestAnimationFrame(() => {
+          dragRafScheduled = false;
+          if (pendingDragPayload && isDragging) {
+            window.electronAPI.sendInput(pendingDragPayload);
+            pendingDragPayload = null;
+          }
+        });
+      }
+    }
 
     screenVideo.addEventListener('mousemove', (e) => {
       const coords = calculateTargetCoordinates(e);
       if (!coords) return;
 
-      coordDisplay.textContent = `X: ${coords.targetX} Y: ${coords.targetY}`;
+      latestCoordText = `X: ${coords.targetX} Y: ${coords.targetY}`;
 
       // In Ghost mode: cursor stays 100% on current desktop during hover and clicks!
       if (cursorMode === 'ghost') {
@@ -413,7 +478,7 @@
           }
 
           if (isDragging) {
-            window.electronAPI.sendInput({
+            queueDragEvent({
               type: 'drag',
               button: mouseDownData.button,
               x: coords.targetX,
@@ -474,6 +539,7 @@
 
     screenVideo.addEventListener('mouseup', (e) => {
       e.preventDefault();
+      pendingDragPayload = null;
       const coords = calculateTargetCoordinates(e);
       if (!coords) return;
 
@@ -559,6 +625,8 @@
     }, { passive: false });
 
     screenVideo.addEventListener('mouseleave', () => {
+      pendingDragPayload = null;
+      latestCoordText = 'X: -- Y: --';
       if (isDragging && activeDisplay && mouseDownData) {
         window.electronAPI.sendInput({
           type: 'dragend',
@@ -613,6 +681,7 @@
         screenVideo.onloadedmetadata = () => {
           screenVideo.play();
           placeholder.style.display = 'none';
+          updateCachedGeometry();
         };
       } catch (err) {
         console.error('Error starting screen stream:', err);
@@ -656,7 +725,7 @@
       }
     });
 
-    // FPS Telemetry Counter
+    // FPS & Coords Telemetry Counter (RAF-decoupled)
     function updateTelemetry() {
       frameCount++;
       const now = performance.now();
@@ -666,6 +735,9 @@
         fpsDisplay.textContent = `FPS: ${fps}`;
         frameCount = 0;
         lastFrameTime = now;
+      }
+      if (latestCoordText && coordDisplay.textContent !== latestCoordText) {
+        coordDisplay.textContent = latestCoordText;
       }
       requestAnimationFrame(updateTelemetry);
     }

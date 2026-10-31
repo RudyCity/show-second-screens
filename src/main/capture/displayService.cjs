@@ -10,10 +10,25 @@ const fs = require('fs');
 class DisplayService {
   constructor() {
     this.displays = [];
+    this.cachedPhysicalMonitors = null;
+    this.lastPhysicalQuery = 0;
+
+    // Invalidate cached monitor geometry when display setup changes
+    if (screen && typeof screen.on === 'function') {
+      screen.on('display-added', () => { this.cachedPhysicalMonitors = null; });
+      screen.on('display-removed', () => { this.cachedPhysicalMonitors = null; });
+      screen.on('display-metrics-changed', () => { this.cachedPhysicalMonitors = null; });
+    }
   }
 
   getWindowsPhysicalMonitors() {
     if (process.platform !== 'win32') return null;
+
+    const now = Date.now();
+    if (this.cachedPhysicalMonitors && now - this.lastPhysicalQuery < 5000) {
+      return this.cachedPhysicalMonitors;
+    }
+
     try {
       const candidates = [];
       if (process.resourcesPath) {
@@ -27,7 +42,9 @@ class DisplayService {
       if (!binPath) return null;
 
       const stdout = execFileSync(binPath, ['getmonitors'], { encoding: 'utf8', windowsHide: true });
-      return JSON.parse(stdout.trim());
+      this.cachedPhysicalMonitors = JSON.parse(stdout.trim());
+      this.lastPhysicalQuery = now;
+      return this.cachedPhysicalMonitors;
     } catch (err) {
       console.error('[DisplayService] Error getting physical monitors:', err);
       return null;

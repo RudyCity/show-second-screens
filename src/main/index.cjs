@@ -6,9 +6,15 @@ const { TrayManager } = require('./tray/trayManager.cjs');
 const { registerIpcHandlers } = require('./ipc/ipcHandlers.cjs');
 const { SingleInstanceManager } = require('./instance/singleInstanceManager.cjs');
 
-// Configure Chromium flags for optimized screen capture and reduced log noise
+// Configure Chromium flags for maximum GPU acceleration, zero-copy video, and minimal latency
 app.commandLine.appendSwitch('log-level', '3');
 app.commandLine.appendSwitch('disable-features', 'CalculateNativeWinOcclusion');
+app.commandLine.appendSwitch('enable-gpu-rasterization');
+app.commandLine.appendSwitch('enable-zero-copy');
+app.commandLine.appendSwitch('enable-hardware-overlays', 'single-fullscreen,single-on-top,underlay');
+app.commandLine.appendSwitch('high-dpi-support', '1');
+app.commandLine.appendSwitch('force_high_performance_gpu');
+app.commandLine.appendSwitch('disable-background-timer-throttling');
 
 // Initialize Single Instance Management & Lock
 const instanceManager = new SingleInstanceManager();

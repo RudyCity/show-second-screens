@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.3.8] - 2026-10-31
+
+### Performance
+- **Zero-Reflow Coordinate Math & Layout Thrashing Elimination**:
+  - Replaced per-event `getBoundingClientRect()` layout queries inside `screenVideo.mousemove` (which previously triggered forced synchronous layouts up to 1000 times per second) with an $O(1)$ cached geometry engine (`cachedGeo`).
+  - Geometry is precomputed and cached on `ResizeObserver`, window resize, and video stream metadata load, using fast multiplication with precalculated reciprocal dimensions (`invRenderWidth`, `invRenderHeight`).
+- **Telemetry & Drag Event Decoupling via RAF**:
+  - Decoupled telemetry DOM text updates (`coordDisplay.textContent`) from raw mousemove events into the synchronized `requestAnimationFrame` render loop, eliminating DOM write-after-read thrashing.
+  - Implemented `requestAnimationFrame` batching for continuous drag events (`queueDragEvent`) to prevent IPC bus flooding and pipe congestion during fast drag-and-drop actions.
+- **Hardware-Accelerated Video Compositing & GPU Pipeline**:
+  - Added CSS zero-copy compositing properties (`transform: translateZ(0); will-change: transform; backface-visibility: hidden; contain: layout paint;`) to force discrete GPU layer promotion.
+  - Added high-performance Chromium switches: `--enable-gpu-rasterization`, `--enable-zero-copy`, `--enable-hardware-overlays`, `--force_high_performance_gpu`, and `--disable-background-timer-throttling`.
+  - Disabled spellchecker background worker threads (`spellcheck: false`) and WebSQL in BrowserWindow `webPreferences`.
+- **Physical Monitor Enumeration Memoization**:
+  - Added 5000ms TTL caching to `DisplayService.getWindowsPhysicalMonitors()`, eliminating repetitive synchronous child process execution during rapid display lookups.
+  - Integrated automatic cache invalidation on `screen` lifecycle events (`display-added`, `display-removed`, `display-metrics-changed`).
+- **Native C# Input Daemon Microsecond Acceleration**:
+  - Reduced artificial `Thread.Sleep` delays across all injection paths in `src/main/input/injector.cs` (down to 2ms in `PhantomClick`, `LegacyGhostClick`, `LegacyGhostWheel`, and `FireClick`), drastically minimizing input queue latency.
+  - Rebuilt high-performance native binary `bin/injector.exe`.
+
+### Added
+- **Standalone Portable Executable (`dist/Show-Second-Screens-Portable-0.3.8.exe`)**:
+  - Packaged ultra-low-latency portable distribution with zero-copy GPU video pipeline.
+
+---
+
 ## [0.3.7] - 2026-10-31
 
 ### Added
