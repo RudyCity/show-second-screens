@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.3.6] - 2026-10-31
+
+### Fixed
+- **System Tray Icon Not Appearing**:
+  - Replaced unsupported raw SVG string buffer in `TrayManager.createTrayIcon()` (which previously produced an empty 0x0 `NativeImage`, causing an invisible tray icon) with dedicated `IconResolver` (`src/main/window/iconResolver.cjs`).
+  - Added multi-path icon detection supporting development, unpacked ASAR (`app.asar.unpacked`), and packaged resources.
+  - Added hardware-generated 16x16 RGBA monitor fallback buffer to ensure the system tray icon is 100% guaranteed to never be empty or invisible.
+- **Window and In-App Logo Icon**:
+  - Integrated `IconResolver` into `WindowManager` to dynamically apply `assets/icon.ico` and `assets/icon.png` to the Windows taskbar and titlebar.
+  - Added brand logo image and favicon `<link rel="icon">` in `src/renderer/index.html` header next to the brand title.
+- **Packaging Assets Unpack**:
+  - Updated `electron-builder.json` to include `"assets/**/*"` in `files` and added `"assets/**/*"` to `asarUnpack`, ensuring Windows shell and taskbar APIs can load native icons directly from the physical filesystem.
+
+---
+
 ## [0.3.5] - 2026-10-31
 
 ### Added

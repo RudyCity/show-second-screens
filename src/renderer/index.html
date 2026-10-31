@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/png" href="../../assets/icon.png">
   <title>Show Second Screens</title>
   <style>
     :root {
@@ -70,11 +71,21 @@
     .brand {
       display: flex;
       align-items: center;
-      gap: 6px;
+      gap: 7px;
       font-weight: 600;
       font-size: 12px;
       letter-spacing: 0.5px;
       color: var(--text-main);
+    }
+
+    .brand-logo {
+      width: 18px;
+      height: 18px;
+      border-radius: 4px;
+      object-fit: contain;
+      flex-shrink: 0;
+      user-select: none;
+      -webkit-user-drag: none;
     }
 
     .brand-dot {
@@ -83,6 +94,7 @@
       background: var(--accent);
       border-radius: 50%;
       box-shadow: 0 0 8px var(--accent);
+      flex-shrink: 0;
     }
 
     /* Screen Select Dropdown */
@@ -202,8 +214,9 @@
   <header class="titlebar" id="titlebar">
     <div class="titlebar-left">
       <div class="brand">
-        <span class="brand-dot"></span>
+        <img src="../../assets/icon.png" class="brand-logo" alt="Logo" onerror="this.style.display='none'" />
         <span>SHOW SCREEN</span>
+        <span class="brand-dot" title="Live Streaming"></span>
       </div>
       <select class="screen-select" id="screenSelect" title="Select Target Monitor">
         <option value="">Detecting displays...</option>

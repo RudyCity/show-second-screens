@@ -1,6 +1,7 @@
 const { BrowserWindow, screen } = require('electron');
 const path = require('path');
 const fs = require('fs');
+const { IconResolver } = require('./iconResolver.cjs');
 
 /**
  * Window Manager for the floating target screen preview window.
@@ -24,12 +25,8 @@ class WindowManager {
     const winY = Math.round(y + (height - winHeight) / 2);
 
     const isMac = process.platform === 'darwin';
-    const iconCandidates = [
-      path.join(__dirname, '../../../assets/icon.png'),
-      path.join(process.resourcesPath || '', 'assets/icon.png'),
-      path.join(__dirname, '../../../build/icon.png'),
-    ];
-    const windowIcon = iconCandidates.find((p) => fs.existsSync(p));
+    const windowIcon = IconResolver.getWindowIcon();
+    const iconPath = IconResolver.getIconPath(process.platform === 'win32' ? 'ico' : 'png');
 
     this.mainWindow = new BrowserWindow({
       title: 'Show Second Screens - Target Preview & Remote',
@@ -40,7 +37,7 @@ class WindowManager {
       minWidth: 420,
       minHeight: 280,
       show: true,
-      icon: windowIcon,
+      icon: iconPath || windowIcon,
       frame: true,
       titleBarStyle: isMac ? 'hiddenInset' : 'default',
       autoHideMenuBar: true,
@@ -53,6 +50,14 @@ class WindowManager {
         backgroundThrottling: false,
       },
     });
+
+    if (windowIcon && typeof this.mainWindow.setIcon === 'function') {
+      try {
+        this.mainWindow.setIcon(windowIcon);
+      } catch (e) {
+        // Ignore if unsupported on platform
+      }
+    }
 
     const indexPath = path.join(__dirname, '../../renderer/index.html');
     this.mainWindow.loadFile(indexPath);

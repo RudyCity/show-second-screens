@@ -6,7 +6,7 @@
   },
   "files": [
     "src/**/*",
-    "assets/icon.png",
+    "assets/**/*",
     "package.json"
   ],
   "extraResources": [
@@ -17,7 +17,8 @@
   ],
   "asar": true,
   "asarUnpack": [
-    "bin/**/*"
+    "bin/**/*",
+    "assets/**/*"
   ],
   "win": {
     "icon": "assets/icon.ico",

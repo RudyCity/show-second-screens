@@ -1,4 +1,5 @@
-const { Tray, Menu, nativeImage, app } = require('electron');
+const { Tray, Menu, app } = require('electron');
+const { IconResolver } = require('../window/iconResolver.cjs');
 
 /**
  * System Tray Manager for cross-platform system tray integration (Windows, macOS, Linux).
@@ -10,43 +11,25 @@ class TrayManager {
   }
 
   init() {
-    const icon = this.createTrayIcon();
-    this.tray = new Tray(icon);
-    this.tray.setToolTip('Show Second Screens - Target Preview & Remote');
+    try {
+      const icon = IconResolver.getTrayIcon();
+      this.tray = new Tray(icon);
+      this.tray.setToolTip('Show Second Screens - Target Preview & Remote');
 
-    this.updateContextMenu();
+      this.updateContextMenu();
 
-    // Toggle window on left click (Windows / Linux)
-    this.tray.on('click', () => {
-      this.toggleWindow();
-    });
+      // Toggle window on left click (Windows / Linux)
+      this.tray.on('click', () => {
+        this.toggleWindow();
+      });
 
-    // Toggle on double-click
-    this.tray.on('double-click', () => {
-      this.toggleWindow();
-    });
-  }
-
-  createTrayIcon() {
-    // 32x32 sleek vector display icon
-    const svgIcon = `
-      <svg width="32" height="32" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
-        <rect x="2" y="5" width="28" height="18" rx="3" fill="#12141d" stroke="#22c55e" stroke-width="2"/>
-        <rect x="7" y="9" width="18" height="10" rx="1.5" fill="#22c55e" fill-opacity="0.3"/>
-        <line x1="16" y1="23" x2="16" y2="28" stroke="#22c55e" stroke-width="2" stroke-linecap="round"/>
-        <line x1="10" y1="28" x2="22" y2="28" stroke="#22c55e" stroke-width="2" stroke-linecap="round"/>
-      </svg>
-    `.trim();
-
-    const buffer = Buffer.from(svgIcon);
-    let icon = nativeImage.createFromBuffer(buffer, { width: 16, height: 16 });
-
-    // Mark as template image for macOS dark/light mode automatic styling
-    if (process.platform === 'darwin') {
-      icon.setTemplateImage(true);
+      // Toggle on double-click
+      this.tray.on('double-click', () => {
+        this.toggleWindow();
+      });
+    } catch (err) {
+      console.error('[TrayManager] Error initializing system tray:', err);
     }
-
-    return icon;
   }
 
   toggleWindow() {
