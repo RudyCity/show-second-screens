@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.3.7] - 2026-10-31
+
+### Added
+- **Bright & High-Contrast Visual Brand Identity**:
+  - Re-designed application logo with an ultra-bright, glowing dual-monitor aesthetic (`assets/icon.png` 512x512 and multi-resolution `assets/icon.ico` with 16, 24, 32, 48, 64, 128, 256px formats).
+  - High visibility guaranteed against dark themes, Windows dark taskbar, and high-DPI displays.
+- **Ko-fi Donation & Support Integration**:
+  - Added sleek, responsive `☕ Donate` button in the application titlebar with smooth hover feedback opening `https://ko-fi.com/rudycity` in the user's default browser via IPC `system:open-external`.
+  - Added `☕ Support via Ko-fi` menu action in the System Tray context menu.
+  - Added official Ko-fi donation badge and section to `README.md`.
+- **Standalone Portable Executable (`dist/Show-Second-Screens-Portable-0.3.7.exe`)**:
+  - Rebuilt standalone portable distribution with updated bright icons and Ko-fi support integration.
+
+---
+
 ## [0.3.6] - 2026-10-31
 
 ### Fixed

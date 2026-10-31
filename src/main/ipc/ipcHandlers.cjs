@@ -1,4 +1,4 @@
-const { ipcMain } = require('electron');
+const { ipcMain, shell } = require('electron');
 
 /**
  * Register all IPC channels between Main process and Renderer.
@@ -88,6 +88,13 @@ function registerIpcHandlers({ displayService, inputService, windowManager }) {
   ipcMain.on('window:close', () => windowManager.close());
   ipcMain.on('window:set-always-on-top', (event, flag) => windowManager.setAlwaysOnTop(flag));
   ipcMain.on('window:set-opacity', (event, opacity) => windowManager.setOpacity(opacity));
+
+  // External URL & System channels
+  ipcMain.on('system:open-external', (event, url) => {
+    if (typeof url === 'string' && (url.startsWith('https://') || url.startsWith('http://'))) {
+      shell.openExternal(url);
+    }
+  });
 }
 
 module.exports = { registerIpcHandlers };

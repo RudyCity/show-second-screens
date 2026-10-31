@@ -1,4 +1,4 @@
-const { Tray, Menu, app } = require('electron');
+const { Tray, Menu, app, shell } = require('electron');
 const { IconResolver } = require('../window/iconResolver.cjs');
 
 /**
@@ -78,6 +78,13 @@ class TrayManager {
         label: 'Center Window on Active Screen',
         click: () => {
           this.windowManager.centerOnActiveScreen();
+        },
+      },
+      { type: 'separator' },
+      {
+        label: '☕ Support via Ko-fi',
+        click: () => {
+          shell.openExternal('https://ko-fi.com/rudycity');
         },
       },
       { type: 'separator' },

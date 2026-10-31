@@ -11,4 +11,5 @@ contextBridge.exposeInMainWorld('electronAPI', {
   closeWindow: () => ipcRenderer.send('window:close'),
   setAlwaysOnTop: (flag) => ipcRenderer.send('window:set-always-on-top', flag),
   setOpacity: (opacity) => ipcRenderer.send('window:set-opacity', opacity),
+  openExternal: (url) => ipcRenderer.send('system:open-external', url),
 });

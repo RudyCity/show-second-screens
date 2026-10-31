@@ -143,6 +143,19 @@
       border-color: var(--accent);
     }
 
+    .btn-donate {
+      background: rgba(255, 94, 91, 0.12);
+      border-color: rgba(255, 94, 91, 0.3);
+      color: #fca5a5;
+    }
+
+    .btn-donate:hover {
+      background: #ff5e5b !important;
+      border-color: #ff5e5b !important;
+      color: #ffffff !important;
+      box-shadow: 0 0 10px rgba(255, 94, 91, 0.35);
+    }
+
     .btn-close:hover {
       background: var(--danger);
       color: #fff;
@@ -229,6 +242,7 @@
       <button class="btn active" id="btnMode" title="Toggle Cursor Mode: Tetap di Sini (Ghost) vs Pindah Layar (Direct)">🎯 Tetap di Sini</button>
       <button class="btn active" id="btnPin" title="Toggle Always on Top">📌 Always On Top</button>
       <button class="btn" id="btnOpacity" title="Toggle Window Opacity">🌓 100%</button>
+      <button class="btn btn-donate" id="btnDonate" title="Dukung pengembang melalui Ko-fi (https://ko-fi.com/rudycity)">☕ Donate</button>
     </div>
   </header>
 
@@ -300,6 +314,16 @@
       window.electronAPI.setOpacity(op);
       btnOpacity.textContent = `🌓 ${Math.round(op * 100)}%`;
     });
+
+    const btnDonate = document.getElementById('btnDonate');
+    if (btnDonate) {
+      btnDonate.addEventListener('click', (e) => {
+        e.preventDefault();
+        if (window.electronAPI && typeof window.electronAPI.openExternal === 'function') {
+          window.electronAPI.openExternal('https://ko-fi.com/rudycity');
+        }
+      });
+    }
 
     // Coordinate Mapping Math Engine
     function calculateTargetCoordinates(e) {
