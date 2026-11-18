@@ -68,7 +68,7 @@ Ketika bekerja dengan banyak monitor atau layar virtual (*Virtual Display Driver
 Anda dapat langsung mengunduh paket aplikasi siap pakai tanpa perlu menginstal Node.js dari halaman [**GitHub Releases**](https://github.com/RudyCity/show-second-screens/releases/latest):
 - **Windows (`x64` Portable)**: `Show-Second-Screens-Portable-0.3.9.exe` (double-click langsung jalan tanpa instalasi).
 - **macOS (`arm64` & `x64`)**: `Show-Second-Screens-macOS-0.3.9-<arch>.dmg` atau `.zip`.
-- **Ubuntu / Linux (`x64`)**: `Show-Second-Screens-Linux-0.3.9-x64.AppImage` atau `Show-Second-Screens-Linux-0.3.9-x64.deb`.
+- **Ubuntu / Linux (`x64`)**: `Show-Second-Screens-Linux-0.3.9-x86_64.AppImage` atau `Show-Second-Screens-Linux-0.3.9-amd64.deb`.
 
 ---
 

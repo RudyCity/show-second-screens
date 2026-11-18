@@ -13,11 +13,11 @@
     "start:raw": "electron .",
     "build:injector": "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\csc.exe /nologo /optimize /target:winexe /out:bin\\injector.exe src\\main\\input\\injector.cs",
     "prebuild:portable": "npm run build:injector",
-    "build:portable": "electron-builder --win portable",
+    "build:portable": "electron-builder --win portable --publish never",
     "prebuild:win": "npm run build:injector",
-    "build:win": "electron-builder --win portable",
-    "build:mac": "electron-builder --mac",
-    "build:linux": "electron-builder --linux",
+    "build:win": "electron-builder --win portable --publish never",
+    "build:mac": "electron-builder --mac --publish never",
+    "build:linux": "electron-builder --linux --publish never",
     "dist": "npm run build:portable"
   },
   "devDependencies": {
