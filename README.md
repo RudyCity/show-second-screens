@@ -4,9 +4,10 @@
 > Real-time streaming and 1:1 remote interaction for secondary, external, or virtual displays inside a floating, movable, and resizable window with **Ghost Cursor Mode** and **System Tray** support.
 
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
-[![Platform: Windows | macOS | Linux](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux-green.svg)](#cross-platform-architecture)
+[![Platform: Windows | macOS | Linux](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux-green.svg)](#5--arsitektur-input-lintas-platform)
 [![Electron: v33+](https://img.shields.io/badge/Electron-v33+-47848F.svg)](https://www.electronjs.org/)
-[![Version: 0.3.9](https://img.shields.io/badge/Version-0.3.9-emerald.svg)](CHANGELOG.md)
+[![Version: 0.3.9](https://img.shields.io/badge/Version-0.3.9-22c55e.svg)](CHANGELOG.md)
+[![GitHub Release](https://img.shields.io/github/v/release/RudyCity/show-second-screens?color=22c55e)](https://github.com/RudyCity/show-second-screens/releases/latest)
 [![Donate: Ko-fi](https://img.shields.io/badge/Ko--fi-Support%20Creator-FF5E5B?logo=ko-fi&logoColor=white)](https://ko-fi.com/rudycity)
 
 ---
@@ -31,8 +32,8 @@ Ketika bekerja dengan banyak monitor atau layar virtual (*Virtual Display Driver
 - **Opsi Mode Direct**: Tombol `🎯 Tetap di Sini` pada toolbar dapat di-toggle menjadi `🚀 Pindah Layar` jika Anda sengaja ingin memindahkan kursor fisik ke layar target.
 
 ### 2. 🖥️ Streaming Layar 60 FPS Latensi Ultra-Rendah
-- Menangkap layar target secara *hardware-accelerated* menggunakan Desktop Media Capture WebRTC.
-- Auto-letterbox calculation: Rasio aspek layar target selalu dipertahankan dengan presisi tinggi.
+- Menangkap layar target secara *hardware-accelerated* menggunakan Desktop Media Capture WebRTC dengan pipeline GPU *zero-copy*.
+- Pemetaan koordinat *zero-reflow* ($O(1)$ cached geometry) dan *auto-letterbox calculation* untuk menjaga rasio aspek layar target dengan presisi piksel 1:1.
 
 ### 3. 📌 Integrasi System Tray (Baki Sistem)
 - Ikon dinamis di pojok Taskbar Windows, macOS Menu Bar, dan Linux AppIndicator.
@@ -40,6 +41,7 @@ Ketika bekerja dengan banyak monitor atau layar virtual (*Virtual Display Driver
   - `Show Window` / `Hide Window`
   - `Always On Top` (Toggle)
   - `Center Window on Active Screen` (Mengembalikan posisi jendela tepat ke tengah monitor aktif)
+  - `☕ Support via Ko-fi` (Membuka jendela donasi Ko-fi langsung di dalam aplikasi)
   - `Quit`
 - Klik atau double-click pada ikon tray untuk menyembunyikan/menampilkan jendela preview secara instan.
 
@@ -59,43 +61,53 @@ Ketika bekerja dengan banyak monitor atau layar virtual (*Virtual Display Driver
 
 ---
 
-## 📦 Panduan Instalasi & Menjalankan (Quick Start)
+## 📦 Download & Panduan Instalasi (Quick Start)
 
-### 1. Prasyarat Sistem
+### Opsi A: Download Windows Portable (.exe) — Tanpa Instalasi
+Untuk pengguna **Windows 10 / 11 (x64)**, Anda dapat langsung mengunduh file executable portable siap pakai tanpa perlu menginstal Node.js:
+1. Buka halaman [**GitHub Releases**](https://github.com/RudyCity/show-second-screens/releases/latest).
+2. Unduh `Show-Second-Screens-Portable-0.3.9.exe`.
+3. Double-click file `.exe` tersebut untuk langsung menjalankan aplikasi.
+
+---
+
+### Opsi B: Menjalankan & Build dari Source Code
+
+#### 1. Prasyarat Sistem
 - [Node.js](https://nodejs.org/) (versi 18, 20, atau 22+)
 - **Windows**: Windows 10 / 11 (C# compiler `csc.exe` sudah terpasang bawaan di `.NET Framework`).
 - **macOS**: macOS Monterey / Ventura / Sonoma / Sequoia (opsional: `brew install cliclick` untuk performa input maksimal).
 - **Linux**: Ubuntu / Debian / Fedora / Arch (opsional: `sudo apt install xdotool` untuk simulasi mouse).
 
-### 2. Clone Repositori
+#### 2. Clone Repositori
 ```bash
 git clone https://github.com/RudyCity/show-second-screens.git
 cd show-second-screens
 ```
 
-### 3. Instalasi Dependensi
+#### 3. Instalasi Dependensi
 ```bash
 npm install
 ```
 
-### 4. Kompilasi Input Injector (Khusus Windows, sudah terkompilasi bawaan)
+#### 4. Kompilasi Input Injector (Khusus Windows, sudah terkompilasi bawaan)
 Jika Anda memodifikasi kode C# di `src/main/input/injector.cs`:
 ```powershell
 npm run build:injector
 ```
 
-### 5. Menjalankan Aplikasi (Mode Development)
+#### 5. Menjalankan Aplikasi (Mode Development)
 ```bash
 npm start
 ```
 
-### 6. Membuat Executable Portable Windows (.exe)
-Untuk membuat file executable mandiri (*single-file portable*) yang dapat langsung dijalankan tanpa instalasi:
+#### 6. Membuat Executable Portable Windows (.exe)
+Untuk membuat file executable mandiri (*single-file portable*) yang dapat langsung dijalankan tanpa instalasi (`npm run dist` juga tersedia sebagai alias):
 ```powershell
 npm run build:portable
 ```
 File executable portable akan otomatis dibuat di folder `dist/`:
-- `dist/Show-Second-Screens-Portable-0.3.3.exe` (langsung double-click untuk menjalankan).
+- `dist/Show-Second-Screens-Portable-0.3.9.exe` (langsung double-click untuk menjalankan).
 
 ---
 
@@ -104,9 +116,11 @@ File executable portable akan otomatis dibuat di folder `dist/`:
 | Tombol / Aksi | Fungsi |
 |---|---|
 | **Pilih Layar (Dropdown)** | Memilih monitor fisik atau virtual yang ingin dipantau. |
+| **Badge Telemetri (`FPS`, `X/Y`)** | Menampilkan frame rate streaming dan koordinat target secara real-time. |
 | **`🎯 Tetap di Sini`** | Toggle mode kursor: **Tetap di Sini (Ghost Mode)** vs **Pindah Layar (Direct Mode)**. |
 | **`📌 Always On Top`** | Mengunci jendela preview agar selalu mengambang di atas jendela aplikasi lain. |
 | **`🌓 100%`** | Mengubah tingkat transparansi jendela (100% $\to$ 85% $\to$ 65%). |
+| **`☕ Donate`** | Membuka jendela modal donasi Ko-fi langsung di dalam aplikasi. |
 | **Klik Kiri Preview** | Mengklik elemen pada monitor target. |
 | **Klik Kanan Preview** | Membuka menu konteks (*Context Menu*) pada monitor target. |
 | **Double Click** | Membuka file, shortcut, atau folder di monitor target. |
@@ -122,16 +136,23 @@ Struktur direktori mematuhi Single Responsibility Principle (SRP) dan batasan ma
 
 ```text
 show-second-screens/
+├── .github/
+│   └── FUNDING.yml           # Konfigurasi tombol Sponsor GitHub (Ko-fi)
 ├── .editorconfig             # Standar indentasi dan formatting berkas
 ├── .gitignore                # Aturan ignore berkas build & log
 ├── AGENTS.md                 # Standar operasional wajib AI Coding Agent
 ├── CHANGELOG.md              # Riwayat perubahan per versi (SemVer)
-├── LICENSE                   # Lisensi MIT
+├── LICENSE                   # Lisensi Apache 2.0
 ├── README.md                 # Dokumentasi publik proyek
+├── electron-builder.json     # Konfigurasi packaging portable Windows (.exe)
 ├── package.json              # Manifest dependensi & scripts
+├── assets/
+│   ├── icon.ico              # Ikon multi-resolusi aplikasi Windows
+│   └── icon.png              # Ikon & logo aplikasi resolusi tinggi
 ├── bin/
-│   └── injector.exe          # Binary Win32 C# SendInput daemon (Windows)
+│   └── injector.exe          # Binary Win32 C# SendInput/PostMessage daemon
 ├── scripts/
+│   ├── generate-icon.ps1     # Script generator aset ikon aplikasi
 │   └── start.cjs             # Process launcher dengan filter WebRTC noise
 ├── src/
 │   ├── main/                 # Main Process (Electron Lifecycle & OS Bridges)
@@ -146,11 +167,14 @@ show-second-screens/
 │   │   │       ├── windowsAdapter.cjs
 │   │   │       ├── macAdapter.cjs
 │   │   │       └── linuxAdapter.cjs
+│   │   ├── instance/         # Single-instance lock & conflict resolver
+│   │   │   └── singleInstanceManager.cjs
 │   │   ├── ipc/              # IPC Channel Handlers
 │   │   │   └── ipcHandlers.cjs
 │   │   ├── tray/             # System Tray Manager (Windows, macOS, Linux)
 │   │   │   └── trayManager.cjs
-│   │   └── window/           # Window Manager (Draggable, Resizable, Topmost)
+│   │   └── window/           # Window & Icon Manager (Topmost, Opacity, Donate Modal)
+│   │       ├── iconResolver.cjs
 │   │       └── windowManager.cjs
 │   ├── preload/              # Secure Preload Layer (Context Isolation)
 │   │   └── index.cjs
@@ -206,6 +230,6 @@ Setiap dukungan sangat berarti untuk keberlanjutan dan penyempurnaan fitur-fitur
 
 ## 📄 Lisensi
 
-Didistribusikan di bawah Lisensi Apache 2.0. Lihat berkas [LICENSE](LICENSE) untuk informasi lebih lanjut.
+Proyek ini dilisensikan di bawah **Apache License, Version 2.0**. Lihat berkas [LICENSE](LICENSE) untuk ketentuan lengkap.
 
-Copyright © 2026 **RudyCity**. All rights reserved.
+Copyright © 2026 **RudyCity**. Licensed under the [Apache License, Version 2.0](LICENSE).
