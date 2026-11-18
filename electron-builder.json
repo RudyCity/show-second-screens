@@ -9,19 +9,18 @@
     "assets/**/*",
     "package.json"
   ],
-  "extraResources": [
-    {
-      "from": "bin/injector.exe",
-      "to": "bin/injector.exe"
-    }
-  ],
   "asar": true,
   "asarUnpack": [
-    "bin/**/*",
     "assets/**/*"
   ],
   "win": {
     "icon": "assets/icon.ico",
+    "extraResources": [
+      {
+        "from": "bin/injector.exe",
+        "to": "bin/injector.exe"
+      }
+    ],
     "target": [
       {
         "target": "portable",
@@ -34,5 +33,46 @@
   },
   "portable": {
     "artifactName": "Show-Second-Screens-Portable-${version}.${ext}"
+  },
+  "mac": {
+    "icon": "assets/icon.png",
+    "category": "public.app-category.utilities",
+    "target": [
+      {
+        "target": "dmg",
+        "arch": [
+          "x64",
+          "arm64"
+        ]
+      },
+      {
+        "target": "zip",
+        "arch": [
+          "x64",
+          "arm64"
+        ]
+      }
+    ],
+    "artifactName": "Show-Second-Screens-macOS-${version}-${arch}.${ext}"
+  },
+  "linux": {
+    "icon": "assets/icon.png",
+    "category": "Utility",
+    "maintainer": "RudyCity <hrudy715@gmail.com>",
+    "target": [
+      {
+        "target": "AppImage",
+        "arch": [
+          "x64"
+        ]
+      },
+      {
+        "target": "deb",
+        "arch": [
+          "x64"
+        ]
+      }
+    ],
+    "artifactName": "Show-Second-Screens-Linux-${version}-${arch}.${ext}"
   }
 }

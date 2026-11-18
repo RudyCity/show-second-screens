@@ -7,6 +7,7 @@
 [![Platform: Windows | macOS | Linux](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux-green.svg)](#5--arsitektur-input-lintas-platform)
 [![Electron: v33+](https://img.shields.io/badge/Electron-v33+-47848F.svg)](https://www.electronjs.org/)
 [![Version: 0.3.9](https://img.shields.io/badge/Version-0.3.9-22c55e.svg)](CHANGELOG.md)
+[![CI & Release](https://github.com/RudyCity/show-second-screens/actions/workflows/release.yml/badge.svg)](https://github.com/RudyCity/show-second-screens/actions/workflows/release.yml)
 [![GitHub Release](https://img.shields.io/github/v/release/RudyCity/show-second-screens?color=22c55e)](https://github.com/RudyCity/show-second-screens/releases/latest)
 [![Donate: Ko-fi](https://img.shields.io/badge/Ko--fi-Support%20Creator-FF5E5B?logo=ko-fi&logoColor=white)](https://ko-fi.com/rudycity)
 
@@ -63,11 +64,11 @@ Ketika bekerja dengan banyak monitor atau layar virtual (*Virtual Display Driver
 
 ## 📦 Download & Panduan Instalasi (Quick Start)
 
-### Opsi A: Download Windows Portable (.exe) — Tanpa Instalasi
-Untuk pengguna **Windows 10 / 11 (x64)**, Anda dapat langsung mengunduh file executable portable siap pakai tanpa perlu menginstal Node.js:
-1. Buka halaman [**GitHub Releases**](https://github.com/RudyCity/show-second-screens/releases/latest).
-2. Unduh `Show-Second-Screens-Portable-0.3.9.exe`.
-3. Double-click file `.exe` tersebut untuk langsung menjalankan aplikasi.
+### Opsi A: Download Installer / Portable Siap Pakai (Windows, macOS, Ubuntu)
+Anda dapat langsung mengunduh paket aplikasi siap pakai tanpa perlu menginstal Node.js dari halaman [**GitHub Releases**](https://github.com/RudyCity/show-second-screens/releases/latest):
+- **Windows (`x64` Portable)**: `Show-Second-Screens-Portable-0.3.9.exe` (double-click langsung jalan tanpa instalasi).
+- **macOS (`arm64` & `x64`)**: `Show-Second-Screens-macOS-0.3.9-<arch>.dmg` atau `.zip`.
+- **Ubuntu / Linux (`x64`)**: `Show-Second-Screens-Linux-0.3.9-x64.AppImage` atau `Show-Second-Screens-Linux-0.3.9-x64.deb`.
 
 ---
 
@@ -101,13 +102,19 @@ npm run build:injector
 npm start
 ```
 
-#### 6. Membuat Executable Portable Windows (.exe)
-Untuk membuat file executable mandiri (*single-file portable*) yang dapat langsung dijalankan tanpa instalasi (`npm run dist` juga tersedia sebagai alias):
+#### 6. Membuat Installer / Portable Lintas Platform
+Build untuk **Ubuntu, macOS, dan Windows** dijalankan otomatis melalui GitHub Actions ([`.github/workflows/release.yml`](.github/workflows/release.yml)) setiap push tag `v*` atau *manual dispatch*. Untuk build lokal per platform:
 ```powershell
-npm run build:portable
+# Windows Portable (.exe) — alias: npm run build:portable / npm run dist
+npm run build:win
+
+# macOS (.dmg & .zip untuk x64 + arm64, dijalankan di macOS)
+npm run build:mac
+
+# Ubuntu / Linux (.AppImage & .deb, dijalankan di Linux)
+npm run build:linux
 ```
-File executable portable akan otomatis dibuat di folder `dist/`:
-- `dist/Show-Second-Screens-Portable-0.3.9.exe` (langsung double-click untuk menjalankan).
+Hasil build otomatis dibuat di folder `dist/`.
 
 ---
 
@@ -137,7 +144,9 @@ Struktur direktori mematuhi Single Responsibility Principle (SRP) dan batasan ma
 ```text
 show-second-screens/
 ├── .github/
-│   └── FUNDING.yml           # Konfigurasi tombol Sponsor GitHub (Ko-fi)
+│   ├── FUNDING.yml           # Konfigurasi tombol Sponsor GitHub (Ko-fi)
+│   └── workflows/
+│       └── release.yml       # GitHub Actions CI & Release (Ubuntu, macOS, Windows)
 ├── .editorconfig             # Standar indentasi dan formatting berkas
 ├── .gitignore                # Aturan ignore berkas build & log
 ├── AGENTS.md                 # Standar operasional wajib AI Coding Agent

@@ -1,0 +1,128 @@
+name: CI & Cross-Platform Release
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*'
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      publish_release:
+        description: 'Publish/update GitHub Release with built assets'
+        required: false
+        type: boolean
+        default: false
+      release_tag:
+        description: 'Tag name to publish or update (e.g. v0.3.9)'
+        required: false
+        type: string
+        default: ''
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build (${{ matrix.platform }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: ubuntu
+            os: ubuntu-latest
+            build_script: build:linux
+          - platform: macos
+            os: macos-latest
+            build_script: build:mac
+          - platform: windows
+            os: windows-latest
+            build_script: build:win
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Verify JavaScript syntax
+        shell: bash
+        run: |
+          while IFS= read -r -d '' file; do
+            node --check "$file"
+          done < <(find src scripts -type f -name '*.cjs' -print0)
+
+      - name: Build application (${{ matrix.platform }})
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+        run: npm run ${{ matrix.build_script }}
+
+      - name: Upload build artifacts (${{ matrix.platform }})
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-${{ matrix.platform }}
+          path: |
+            dist/*.exe
+            dist/*.dmg
+            dist/*.zip
+            dist/*.AppImage
+            dist/*.deb
+          if-no-files-found: error
+          retention-days: 14
+
+  release:
+    name: Publish GitHub Release
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && inputs.publish_release == true)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download all platform artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release-assets
+          merge-multiple: true
+
+      - name: List release assets
+        run: ls -lh release-assets
+
+      - name: Create or update GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="${{ inputs.release_tag }}"
+          if [ -z "$TAG" ]; then
+            TAG="${GITHUB_REF_NAME}"
+          fi
+          if [ -z "$TAG" ] || [[ "$TAG" != v* ]]; then
+            echo "Invalid release tag: '$TAG'. Expected tag starting with 'v' (e.g. v0.3.9)."
+            exit 1
+          fi
+
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" release-assets/* --clobber
+          else
+            NOTES=$(printf 'Cross-platform release builds for **Show Second Screens %s** (Windows Portable, macOS DMG/ZIP, Ubuntu AppImage/DEB).\n\n☕ Support the creator on Ko-fi: https://ko-fi.com/rudycity\n' "$TAG")
+            gh release create "$TAG" release-assets/* \
+              --title "Show Second Screens $TAG" \
+              --notes "$NOTES" \
+              --generate-notes
+          fi
