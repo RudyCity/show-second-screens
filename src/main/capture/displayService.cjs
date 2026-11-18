@@ -35,7 +35,7 @@ class DisplayService {
         candidates.push(path.join(process.resourcesPath, 'bin', 'injector.exe'));
         candidates.push(path.join(process.resourcesPath, 'app.asar.unpacked', 'bin', 'injector.exe'));
       }
-      candidates.push(path.resolve(__dirname, '../../../../bin/injector.exe'));
+      candidates.push(path.resolve(__dirname, '../../../bin/injector.exe'));
       candidates.push(path.resolve(process.cwd(), 'bin/injector.exe'));
 
       const binPath = candidates.find((p) => fs.existsSync(p));
@@ -75,7 +75,10 @@ class DisplayService {
         const screenNum = numMatch ? parseInt(numMatch[0], 10) : (index + 1);
 
         const phys =
-          physicalMonitors.find((m) => m.device.endsWith(String(screenNum))) ||
+          physicalMonitors.find((m) => {
+            const devMatch = (m.device || '').match(/DISPLAY(\d+)$/i);
+            return devMatch && parseInt(devMatch[1], 10) === screenNum;
+          }) ||
           physicalMonitors[index] ||
           physicalMonitors[0];
 
@@ -105,11 +108,16 @@ class DisplayService {
         sources[index] ||
         sources[0];
 
+      const bounds =
+        process.platform === 'win32' && typeof screen.dipToScreenRect === 'function'
+          ? screen.dipToScreenRect(null, disp.bounds)
+          : disp.bounds;
+
       return {
         id: String(disp.id),
         name: `Display ${index + 1}${disp.id === primaryDisplay.id ? ' (Primary)' : ''}`,
         sourceId: matchedSource ? matchedSource.id : '',
-        bounds: disp.bounds,
+        bounds,
         scaleFactor: disp.scaleFactor,
         isPrimary: disp.id === primaryDisplay.id,
         displayIndex: index,

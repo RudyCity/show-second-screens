@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.3.11] - 2026-11-18
+
+### Fixed
+- **Reliable Clicks & Input Injection Across All Windows Apps**:
+  - Switched default Ghost Mode input routing in `src/main/ipc/ipcHandlers.cjs` from `PostMessage`-only (`phantomClick`) to hardware-level `SendInput` Ghost Mode (`ghostClick`, `ghostDoubleClick`, `ghostWheel`, `ghostDown`, `ghostDrag`, `ghostUp`), fixing clicks silently ignored by Windows Taskbar, Desktop, File Explorer, UWP/WinUI, window titlebars, and modern browsers.
+  - Removed forced `win.focus()` stealing focus back from the clicked target window on every click.
+  - Upgraded `src/main/input/injector.cs` from legacy `mouse_event` to Win32 `SendInput` with proper settle delays, added missing `dblclick` support in Direct Mode, and added Shell/UWP/`WM_NCHITTEST` hardware fallback checks in `ResolveTarget`.
+  - Fixed `mouseup` in `src/renderer/renderer.js` so `isMouseDown` and `isDragging` always reset even when released over letterbox margins.
+  - Fixed relative `bin/injector.exe` lookup path, exact `DISPLAY<n>` matching, and DIP-to-physical bounds fallback in `src/main/capture/displayService.cjs`.
+  - Rebuilt `bin/injector.exe`.
+
+---
+
 ## [0.3.10] - 2026-11-18
 
 ### Fixed

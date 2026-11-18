@@ -16,53 +16,44 @@ function registerIpcHandlers({ displayService, inputService, windowManager }) {
     const { type, x, y, button, deltaY, origX, origY, mode = 'ghost' } = inputEvent;
 
     if (mode === 'ghost') {
-      // Phantom mode: injection via PostMessage directly to the window under
-      // the target point. The physical cursor NEVER moves (no SetCursorPos
-      // round-trip, no flicker) — it stays exactly where the user left it.
+      // Ghost mode: uses OS hardware SendInput at target coordinates and
+      // immediately restores the physical cursor back to the user's position.
       switch (type) {
         case 'click':
-          inputService.phantomClick(x, y, button || 'left');
-          if (windowManager) {
-            const win = windowManager.getWindow();
-            if (win && !win.isDestroyed()) win.focus();
-          }
+          inputService.ghostClick(x, y, button || 'left', origX, origY);
           break;
         case 'dblclick':
-          inputService.phantomDoubleClick(x, y);
-          if (windowManager) {
-            const win = windowManager.getWindow();
-            if (win && !win.isDestroyed()) win.focus();
-          }
+          inputService.ghostDoubleClick(x, y, origX, origY);
           break;
         case 'wheel':
-          inputService.phantomWheel(x, y, deltaY || 0);
+          inputService.ghostWheel(x, y, deltaY || 0, origX, origY);
           break;
         case 'dragstart':
         case 'mousedown':
-          inputService.phantomDown(x, y, button || 'left');
+          inputService.ghostDown(x, y, button || 'left', origX, origY);
+          break;
+        case 'drag':
+          inputService.ghostDrag(x, y);
           break;
         case 'dragend':
         case 'mouseup':
-          inputService.phantomUp(x, y, button || 'left');
-          if (windowManager) {
-            const win = windowManager.getWindow();
-            if (win && !win.isDestroyed()) win.focus();
-          }
+          inputService.ghostUp(x, y, button || 'left', origX, origY);
           break;
-        case 'drag':
-          inputService.phantomMove(x, y, button || 'left');
-          break;
-        // In phantom mode, mousemove hover does NOT warp OS cursor
       }
     } else {
       switch (type) {
         case 'mousemove':
           inputService.move(x, y);
           break;
+        case 'dragstart':
         case 'mousedown':
           inputService.move(x, y);
           inputService.mouseDown(button || 'left');
           break;
+        case 'drag':
+          inputService.move(x, y);
+          break;
+        case 'dragend':
         case 'mouseup':
           inputService.move(x, y);
           inputService.mouseUp(button || 'left');
@@ -76,6 +67,7 @@ function registerIpcHandlers({ displayService, inputService, windowManager }) {
           inputService.doubleClick();
           break;
         case 'wheel':
+          inputService.move(x, y);
           inputService.wheel(deltaY || 0);
           break;
       }

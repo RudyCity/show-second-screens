@@ -5,13 +5,13 @@ using System.Runtime.InteropServices;
 namespace ShowSecondScreens.Input
 {
     /// <summary>
-    /// Native Windows Input Injection Engine using Win32 API.
+    /// Native Windows Input Injection Engine using Win32 SendInput API.
     /// Supports:
-    ///  - Phantom Mode ("msg*" commands): clicks delivered via PostMessage to the
-    ///    window under the target point. The physical cursor NEVER moves at all.
-    ///  - Ghost Mode (legacy "ghost*" commands): SetCursorPos to target, click,
-    ///    then restore the cursor (visible flicker, kept as fallback).
-    ///  - Direct Mode: cursor warps to the target display.
+    ///  - Ghost Mode ("ghost*" commands): moves to target, injects hardware SendInput,
+    ///    then restores physical cursor to its exact prior position.
+    ///  - Phantom Mode ("msg*" commands): PostMessage targeting with automatic
+    ///    hardware Ghost fallback for Shell/UWP/non-client/UIPI windows.
+    ///  - Direct Mode: moves cursor to the target display without restoring.
     /// </summary>
     public static class Program
     {
@@ -24,8 +24,8 @@ namespace ShowSecondScreens.Input
         [DllImport("user32.dll")]
         private static extern bool GetCursorPos(out POINT lpPoint);
 
-        [DllImport("user32.dll")]
-        private static extern void mouse_event(uint dwFlags, int dx, int dy, uint dwData, UIntPtr dwExtraInfo);
+        [DllImport("user32.dll", SetLastError = true)]
+        private static extern uint SendInput(uint nInputs, INPUT[] pInputs, int cbSize);
 
         [DllImport("user32.dll", SetLastError = true)]
         private static extern bool SetProcessDPIAware();
@@ -57,9 +57,21 @@ namespace ShowSecondScreens.Input
         [DllImport("user32.dll", SetLastError = true)]
         private static extern bool PostMessage(IntPtr hWnd, uint Msg, IntPtr wParam, IntPtr lParam);
 
+        [DllImport("user32.dll", CharSet = CharSet.Auto)]
+        private static extern int GetClassName(IntPtr hWnd, System.Text.StringBuilder lpClassName, int nMaxCount);
+
+        [DllImport("user32.dll")]
+        private static extern IntPtr SendMessageTimeout(
+            IntPtr hWnd, uint Msg, IntPtr wParam, IntPtr lParam,
+            uint fuFlags, uint uTimeout, out IntPtr lpdwResult);
+
         private const uint CWP_SKIPINVISIBLE = 0x0001;
         private const uint CWP_SKIPDISABLED = 0x0002;
         private const uint CWP_SKIPTRANSPARENT = 0x0004;
+
+        private const uint WM_NCHITTEST = 0x0084;
+        private const int HTCLIENT = 1;
+        private const uint SMTO_ABORTIFHUNG = 0x0002;
 
         private const uint WM_MOUSEMOVE = 0x0200;
         private const uint WM_LBUTTONDOWN = 0x0201;
@@ -97,6 +109,72 @@ namespace ShowSecondScreens.Input
             public int bottom;
         }
 
+        [StructLayout(LayoutKind.Sequential)]
+        public struct POINT
+        {
+            public int X;
+            public int Y;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct INPUT
+        {
+            public uint type;
+            public InputUnion u;
+        }
+
+        [StructLayout(LayoutKind.Explicit)]
+        private struct InputUnion
+        {
+            [FieldOffset(0)]
+            public MOUSEINPUT mi;
+            [FieldOffset(0)]
+            public KEYBDINPUT ki;
+            [FieldOffset(0)]
+            public HARDWAREINPUT hi;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct MOUSEINPUT
+        {
+            public int dx;
+            public int dy;
+            public uint mouseData;
+            public uint dwFlags;
+            public uint time;
+            public IntPtr dwExtraInfo;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct KEYBDINPUT
+        {
+            public ushort wVk;
+            public ushort wScan;
+            public uint dwFlags;
+            public uint time;
+            public IntPtr dwExtraInfo;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct HARDWAREINPUT
+        {
+            public uint uMsg;
+            public ushort wParamL;
+            public ushort wParamH;
+        }
+
+        private const uint INPUT_MOUSE = 0;
+        private const uint MOUSEEVENTF_LEFTDOWN = 0x0002;
+        private const uint MOUSEEVENTF_LEFTUP = 0x0004;
+        private const uint MOUSEEVENTF_RIGHTDOWN = 0x0008;
+        private const uint MOUSEEVENTF_RIGHTUP = 0x0010;
+        private const uint MOUSEEVENTF_MIDDLEDOWN = 0x0020;
+        private const uint MOUSEEVENTF_MIDDLEUP = 0x0040;
+        private const uint MOUSEEVENTF_WHEEL = 0x0800;
+
+        private static POINT _savedOrigin;
+        private static bool _isDragging = false;
+
         private static string GetMonitorsJson()
         {
             var list = new System.Collections.Generic.List<string>();
@@ -120,30 +198,12 @@ namespace ShowSecondScreens.Input
             return "[" + string.Join(",", list.ToArray()) + "]";
         }
 
-        [StructLayout(LayoutKind.Sequential)]
-        public struct POINT
-        {
-            public int X;
-            public int Y;
-        }
-
-        private const uint MOUSEEVENTF_LEFTDOWN = 0x0002;
-        private const uint MOUSEEVENTF_LEFTUP = 0x0004;
-        private const uint MOUSEEVENTF_RIGHTDOWN = 0x0008;
-        private const uint MOUSEEVENTF_RIGHTUP = 0x0010;
-        private const uint MOUSEEVENTF_MIDDLEDOWN = 0x0020;
-        private const uint MOUSEEVENTF_MIDDLEUP = 0x0040;
-        private const uint MOUSEEVENTF_WHEEL = 0x0800;
-
-        private static POINT _savedOrigin;
-        private static bool _isDragging = false;
-
         public static void Main(string[] args)
         {
             try { AttachConsole(-1); } catch { }
             try
             {
-                // Enable Per-Monitor V2 DPI awareness so SetCursorPos matches physical desktop bounds exactly
+                // Enable Per-Monitor V2 DPI awareness so coordinates match physical desktop bounds 1:1
                 SetProcessDpiAwarenessContext(new IntPtr(-4));
             }
             catch
@@ -192,7 +252,7 @@ namespace ShowSecondScreens.Input
                         Console.WriteLine(GetMonitorsJson());
                         break;
 
-                    // ---------------- Phantom Mode (cursor never moves) ----------------
+                    // ---------------- Phantom Mode (PostMessage + hardware fallback) ----------------
 
                     case "msgclick":
                         if (parts.Length >= 3)
@@ -203,7 +263,7 @@ namespace ShowSecondScreens.Input
 
                             if (!PhantomClick(tx, ty, btn))
                             {
-                                LegacyGhostClick(tx, ty, btn);
+                                GhostClick(tx, ty, btn);
                             }
                         }
                         break;
@@ -216,7 +276,7 @@ namespace ShowSecondScreens.Input
 
                             if (!PhantomDoubleClick(tx, ty))
                             {
-                                LegacyGhostDoubleClick(tx, ty);
+                                GhostDoubleClick(tx, ty);
                             }
                         }
                         break;
@@ -230,7 +290,7 @@ namespace ShowSecondScreens.Input
 
                             if (!PhantomWheel(tx, ty, delta))
                             {
-                                LegacyGhostWheel(tx, ty, delta);
+                                GhostWheel(tx, ty, delta);
                             }
                         }
                         break;
@@ -244,9 +304,10 @@ namespace ShowSecondScreens.Input
 
                             if (!PhantomButton(tx, ty, btnD, true))
                             {
-                                _savedOrigin = CurrentCursor();
+                                GetCursorPos(out _savedOrigin);
                                 _isDragging = true;
                                 SetCursorPos(tx, ty);
+                                System.Threading.Thread.Sleep(5);
                                 FireDown(btnD);
                             }
                             else
@@ -266,9 +327,11 @@ namespace ShowSecondScreens.Input
                             if (!PhantomButton(tx, ty, btnU, false))
                             {
                                 SetCursorPos(tx, ty);
+                                System.Threading.Thread.Sleep(5);
                                 FireUp(btnU);
                                 if (_isDragging)
                                 {
+                                    System.Threading.Thread.Sleep(5);
                                     SetCursorPos(_savedOrigin.X, _savedOrigin.Y);
                                     _isDragging = false;
                                 }
@@ -286,34 +349,36 @@ namespace ShowSecondScreens.Input
                             int tx = int.Parse(parts[1]);
                             int ty = int.Parse(parts[2]);
                             string btnM = parts.Length >= 4 ? parts[3].ToLowerInvariant() : null;
-                            PhantomMove(tx, ty, btnM);
+                            if (!PhantomMove(tx, ty, btnM))
+                            {
+                                SetCursorPos(tx, ty);
+                            }
                         }
                         break;
 
-                    // ---------------- Ghost Mode (legacy, cursor flickers) ----------------
+                    // ---------------- Ghost Mode (SendInput + instant cursor restore) ----------------
 
-                    // Ghost Click: executes remote click at target without moving the physical cursor away
                     case "ghostclick":
                         if (parts.Length >= 3)
                         {
                             int tx = int.Parse(parts[1]);
                             int ty = int.Parse(parts[2]);
                             string btn = parts.Length >= 4 ? parts[3].ToLowerInvariant() : "left";
-                            LegacyGhostClick(tx, ty, btn);
+                            GhostClick(tx, ty, btn);
                         }
                         break;
 
                     case "ghostdblclick":
                         if (parts.Length >= 3)
                         {
-                            LegacyGhostDoubleClick(int.Parse(parts[1]), int.Parse(parts[2]));
+                            GhostDoubleClick(int.Parse(parts[1]), int.Parse(parts[2]));
                         }
                         break;
 
                     case "ghostwheel":
                         if (parts.Length >= 4)
                         {
-                            LegacyGhostWheel(int.Parse(parts[1]), int.Parse(parts[2]), int.Parse(parts[3]));
+                            GhostWheel(int.Parse(parts[1]), int.Parse(parts[2]), int.Parse(parts[3]));
                         }
                         break;
 
@@ -324,18 +389,11 @@ namespace ShowSecondScreens.Input
                             int ty = int.Parse(parts[2]);
                             string btn = parts.Length >= 4 ? parts[3].ToLowerInvariant() : "left";
 
-                            if (parts.Length >= 6)
-                            {
-                                _savedOrigin.X = int.Parse(parts[4]);
-                                _savedOrigin.Y = int.Parse(parts[5]);
-                            }
-                            else
-                            {
-                                GetCursorPos(out _savedOrigin);
-                            }
+                            GetCursorPos(out _savedOrigin);
                             _isDragging = true;
 
                             SetCursorPos(tx, ty);
+                            System.Threading.Thread.Sleep(5);
                             FireDown(btn);
                         }
                         break;
@@ -348,12 +406,12 @@ namespace ShowSecondScreens.Input
                             string btn = parts.Length >= 4 ? parts[3].ToLowerInvariant() : "left";
 
                             SetCursorPos(tx, ty);
+                            System.Threading.Thread.Sleep(5);
                             FireUp(btn);
 
                             if (_isDragging)
                             {
-                                SetCursorPos(_savedOrigin.X, _savedOrigin.Y);
-                                System.Threading.Thread.Sleep(5);
+                                System.Threading.Thread.Sleep(6);
                                 SetCursorPos(_savedOrigin.X, _savedOrigin.Y);
                                 _isDragging = false;
                             }
@@ -387,6 +445,14 @@ namespace ShowSecondScreens.Input
                         }
                         break;
 
+                    case "dblclick":
+                        {
+                            FireClick("left");
+                            System.Threading.Thread.Sleep(20);
+                            FireClick("left");
+                        }
+                        break;
+
                     case "down":
                     case "mousedown":
                         {
@@ -407,7 +473,7 @@ namespace ShowSecondScreens.Input
                         if (parts.Length >= 2)
                         {
                             int delta = int.Parse(parts[1]);
-                            mouse_event(MOUSEEVENTF_WHEEL, 0, 0, (uint)delta, UIntPtr.Zero);
+                            FireWheel(delta);
                         }
                         break;
                 }
@@ -419,20 +485,38 @@ namespace ShowSecondScreens.Input
         }
 
         // ---------------------------------------------------------------------
-        // Phantom (PostMessage) implementation - zero cursor movement
+        // Phantom (PostMessage) implementation
         // ---------------------------------------------------------------------
 
-        private static POINT CurrentCursor()
+        private static bool RequiresHardwareFallback(IntPtr hwnd, int tx, int ty)
         {
-            POINT p;
-            GetCursorPos(out p);
-            return p;
+            var sb = new System.Text.StringBuilder(128);
+            GetClassName(hwnd, sb, sb.Capacity);
+            string cls = sb.ToString();
+
+            // Shell, Taskbar, Desktop, Start Menu, UWP/WinUI windows ignore PostMessage mouse input
+            if (cls == "Shell_TrayWnd" || cls == "Shell_SecondaryTrayWnd" ||
+                cls == "Progman" || cls == "WorkerW" || cls == "SysListView32" ||
+                cls == "SHELLDLL_DefView" || cls == "ApplicationFrameWindow" ||
+                cls == "Windows.UI.Core.CoreWindow" || cls == "XamlExplorerHostIslandWindow")
+            {
+                return true;
+            }
+
+            // Non-client areas (titlebar, close/minimize/maximize, resize borders) require hardware input
+            IntPtr hitResult;
+            IntPtr lpScreen = MakeLParam(tx, ty);
+            if (SendMessageTimeout(hwnd, WM_NCHITTEST, IntPtr.Zero, lpScreen, SMTO_ABORTIFHUNG, 50, out hitResult) != IntPtr.Zero)
+            {
+                if (hitResult.ToInt32() != HTCLIENT)
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
-        /// <summary>
-        /// Finds the deepest visible window under the given virtual-desktop
-        /// (physical pixel) point and converts the point to its client space.
-        /// </summary>
         private static bool ResolveTarget(int tx, int ty, out IntPtr hwnd, out POINT client)
         {
             POINT screen; screen.X = tx; screen.Y = ty;
@@ -451,6 +535,12 @@ namespace ShowSecondScreens.Input
                     CWP_SKIPINVISIBLE | CWP_SKIPDISABLED | CWP_SKIPTRANSPARENT);
                 if (child == IntPtr.Zero || child == hwnd) break;
                 hwnd = child;
+            }
+
+            if (RequiresHardwareFallback(hwnd, tx, ty))
+            {
+                client = default(POINT);
+                return false;
             }
 
             client = screen;
@@ -508,7 +598,6 @@ namespace ShowSecondScreens.Input
             IntPtr hwnd; POINT c;
             if (!ResolveTarget(tx, ty, out hwnd, out c)) return false;
 
-            // WM_MOUSEWHEEL: wParam high word = signed wheel delta, lParam = SCREEN coords
             IntPtr wParam = (IntPtr)(((delta << 16) & unchecked((int)0xFFFF0000)) | 0x0000);
             IntPtr lp = MakeLParam(tx, ty);
             PostMessage(hwnd, WM_MOUSEMOVE, IntPtr.Zero, MakeLParam(c.X, c.Y));
@@ -550,69 +639,87 @@ namespace ShowSecondScreens.Input
         }
 
         // ---------------------------------------------------------------------
-        // Legacy Ghost implementation (SendInput + cursor restore) - fallback
+        // Hardware Ghost implementation (SendInput + cursor restore)
         // ---------------------------------------------------------------------
 
-        private static void LegacyGhostClick(int tx, int ty, string btn)
+        private static void GhostClick(int tx, int ty, string btn)
         {
             POINT orig;
             GetCursorPos(out orig);
 
             SetCursorPos(tx, ty);
+            System.Threading.Thread.Sleep(6);
             FireClick(btn);
-            SetCursorPos(orig.X, orig.Y);
-
-            System.Threading.Thread.Sleep(2);
+            System.Threading.Thread.Sleep(6);
             SetCursorPos(orig.X, orig.Y);
         }
 
-        private static void LegacyGhostDoubleClick(int tx, int ty)
+        private static void GhostDoubleClick(int tx, int ty)
         {
             POINT orig;
             GetCursorPos(out orig);
 
             SetCursorPos(tx, ty);
+            System.Threading.Thread.Sleep(6);
             FireClick("left");
-            System.Threading.Thread.Sleep(12);
+            System.Threading.Thread.Sleep(20);
             FireClick("left");
-            SetCursorPos(orig.X, orig.Y);
-
-            System.Threading.Thread.Sleep(2);
+            System.Threading.Thread.Sleep(6);
             SetCursorPos(orig.X, orig.Y);
         }
 
-        private static void LegacyGhostWheel(int tx, int ty, int delta)
+        private static void GhostWheel(int tx, int ty, int delta)
         {
             POINT orig;
             GetCursorPos(out orig);
 
             SetCursorPos(tx, ty);
-            mouse_event(MOUSEEVENTF_WHEEL, 0, 0, (uint)delta, UIntPtr.Zero);
+            System.Threading.Thread.Sleep(4);
+            FireWheel(delta);
+            System.Threading.Thread.Sleep(4);
             SetCursorPos(orig.X, orig.Y);
+        }
 
-            System.Threading.Thread.Sleep(2);
-            SetCursorPos(orig.X, orig.Y);
+        private static void SendMouseFlag(uint flag, uint mouseData = 0)
+        {
+            var inp = new INPUT[1];
+            inp[0].type = INPUT_MOUSE;
+            inp[0].u.mi = new MOUSEINPUT
+            {
+                dx = 0,
+                dy = 0,
+                mouseData = mouseData,
+                dwFlags = flag,
+                time = 0,
+                dwExtraInfo = IntPtr.Zero,
+            };
+            SendInput(1, inp, Marshal.SizeOf(typeof(INPUT)));
         }
 
         private static void FireClick(string btn)
         {
             FireDown(btn);
-            System.Threading.Thread.Sleep(2);
+            System.Threading.Thread.Sleep(8);
             FireUp(btn);
         }
 
         private static void FireDown(string btn)
         {
-            if (btn == "right") mouse_event(MOUSEEVENTF_RIGHTDOWN, 0, 0, 0, UIntPtr.Zero);
-            else if (btn == "middle") mouse_event(MOUSEEVENTF_MIDDLEDOWN, 0, 0, 0, UIntPtr.Zero);
-            else mouse_event(MOUSEEVENTF_LEFTDOWN, 0, 0, 0, UIntPtr.Zero);
+            if (btn == "right") SendMouseFlag(MOUSEEVENTF_RIGHTDOWN);
+            else if (btn == "middle") SendMouseFlag(MOUSEEVENTF_MIDDLEDOWN);
+            else SendMouseFlag(MOUSEEVENTF_LEFTDOWN);
         }
 
         private static void FireUp(string btn)
         {
-            if (btn == "right") mouse_event(MOUSEEVENTF_RIGHTUP, 0, 0, 0, UIntPtr.Zero);
-            else if (btn == "middle") mouse_event(MOUSEEVENTF_MIDDLEUP, 0, 0, 0, UIntPtr.Zero);
-            else mouse_event(MOUSEEVENTF_LEFTUP, 0, 0, 0, UIntPtr.Zero);
+            if (btn == "right") SendMouseFlag(MOUSEEVENTF_RIGHTUP);
+            else if (btn == "middle") SendMouseFlag(MOUSEEVENTF_MIDDLEUP);
+            else SendMouseFlag(MOUSEEVENTF_LEFTUP);
+        }
+
+        private static void FireWheel(int delta)
+        {
+            SendMouseFlag(MOUSEEVENTF_WHEEL, unchecked((uint)delta));
         }
     }
 }

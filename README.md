@@ -6,7 +6,7 @@
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 [![Platform: Windows | macOS | Linux](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux-green.svg)](#5--arsitektur-input-lintas-platform)
 [![Electron: v33+](https://img.shields.io/badge/Electron-v33+-47848F.svg)](https://www.electronjs.org/)
-[![Version: 0.3.10](https://img.shields.io/badge/Version-0.3.10-22c55e.svg)](CHANGELOG.md)
+[![Version: 0.3.11](https://img.shields.io/badge/Version-0.3.11-22c55e.svg)](CHANGELOG.md)
 [![CI & Release](https://github.com/RudyCity/show-second-screens/actions/workflows/release.yml/badge.svg)](https://github.com/RudyCity/show-second-screens/actions/workflows/release.yml)
 [![GitHub Release](https://img.shields.io/github/v/release/RudyCity/show-second-screens?color=22c55e)](https://github.com/RudyCity/show-second-screens/releases/latest)
 [![Donate: Ko-fi](https://img.shields.io/badge/Ko--fi-Support%20Creator-FF5E5B?logo=ko-fi&logoColor=white)](https://ko-fi.com/rudycity)
@@ -66,9 +66,9 @@ Ketika bekerja dengan banyak monitor atau layar virtual (*Virtual Display Driver
 
 ### Opsi A: Download Installer / Portable Siap Pakai (Windows, macOS, Ubuntu)
 Anda dapat langsung mengunduh paket aplikasi siap pakai tanpa perlu menginstal Node.js dari halaman [**GitHub Releases**](https://github.com/RudyCity/show-second-screens/releases/latest):
-- **Windows (`x64` Portable)**: `Show-Second-Screens-Portable-0.3.10.exe` (double-click langsung jalan tanpa instalasi).
-- **macOS (`arm64` & `x64`)**: `Show-Second-Screens-macOS-0.3.10-<arch>.dmg` atau `.zip`.
-- **Ubuntu / Linux (`x64`)**: `Show-Second-Screens-Linux-0.3.10-x86_64.AppImage` atau `Show-Second-Screens-Linux-0.3.10-amd64.deb`.
+- **Windows (`x64` Portable)**: `Show-Second-Screens-Portable-0.3.11.exe` (double-click langsung jalan tanpa instalasi).
+- **macOS (`arm64` & `x64`)**: `Show-Second-Screens-macOS-0.3.11-<arch>.dmg` atau `.zip`.
+- **Ubuntu / Linux (`x64`)**: `Show-Second-Screens-Linux-0.3.11-x86_64.AppImage` atau `Show-Second-Screens-Linux-0.3.11-amd64.deb`.
 
 ---
 

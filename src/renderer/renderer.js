@@ -279,13 +279,33 @@ screenVideo.addEventListener('mousedown', (e) => {
 screenVideo.addEventListener('mouseup', (e) => {
   e.preventDefault();
   pendingDragPayload = null;
+  const wasMouseDown = isMouseDown;
+  const wasDragging = isDragging;
+  const savedDown = mouseDownData;
+  isMouseDown = false;
+  isDragging = false;
+  mouseDownData = null;
+
   const coords = calculateTargetCoordinates(e);
-  if (!coords) return;
+  if (!coords) {
+    if (wasDragging && savedDown) {
+      window.electronAPI.sendInput({
+        type: 'dragend',
+        button: savedDown.button,
+        x: savedDown.targetX,
+        y: savedDown.targetY,
+        origX: savedDown.screenX,
+        origY: savedDown.screenY,
+        mode: cursorMode,
+      });
+    }
+    return;
+  }
 
   const button = e.button === 2 ? 'right' : e.button === 1 ? 'middle' : 'left';
 
   if (cursorMode === 'ghost') {
-    if (isDragging) {
+    if (wasDragging) {
       window.electronAPI.sendInput({
         type: 'dragend',
         button: button,
@@ -295,9 +315,7 @@ screenVideo.addEventListener('mouseup', (e) => {
         origY: e.screenY,
         mode: 'ghost',
       });
-    } else {
-      // Normal clean click: single atomic injection at target coordinates,
-      // instantly restoring the physical cursor to (e.screenX, e.screenY).
+    } else if (wasMouseDown) {
       window.electronAPI.sendInput({
         type: 'click',
         button: button,
@@ -317,10 +335,6 @@ screenVideo.addEventListener('mouseup', (e) => {
       mode: 'direct',
     });
   }
-
-  isMouseDown = false;
-  isDragging = false;
-  mouseDownData = null;
 });
 
 // Suppress default/redundant browser click & contextmenu events since mouseup handles them
