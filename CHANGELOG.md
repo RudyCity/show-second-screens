@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.3.10] - 2026-11-18
+
+### Fixed
+- **Modularized Renderer & Prevented Inline Style/Script Text Leak**:
+  - Extracted inline CSS from `src/renderer/index.html` into `src/renderer/styles.css` and inline JavaScript into `src/renderer/renderer.js`, reducing `index.html` from 752 lines to 41 lines in compliance with `AGENTS.md` modularization standards (<700 lines).
+  - Enforced `head, meta, link, title, style, script { display: none !important; }` and `.titlebar { flex-shrink: 0; }` + `.viewport-container { flex: 1; min-height: 0; }` so metadata, style, or script nodes can never render as visible text or collapse the video viewport.
+
+### Added
+- **Cross-Platform GitHub Actions CI & Release Workflow (`.github/workflows/release.yml`)**:
+  - Automated multi-OS build and release matrix for **Ubuntu** (`AppImage`, `deb`), **macOS** (`x64`/`arm64` `dmg`, `zip`), and **Windows** (`portable` `.exe`).
+  - Added `.github/FUNDING.yml` (`ko_fi: rudycity`) and updated `package.json` / `electron-builder.json` metadata for cross-platform packaging.
+
+---
+
 ## [0.3.9] - 2026-10-31
 
 ### Added
