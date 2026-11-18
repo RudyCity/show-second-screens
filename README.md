@@ -1,10 +1,10 @@
 # Show Second Screens 🖥️✨
 
 > **Interactive Target Screen Mirror & Remote Control Window**
-> Real-time streaming and 1:1 remote interaction for secondary, external, or virtual displays inside a floating, movable, and resizable window with **Ghost Cursor Mode** and **System Tray** support.
+> Real-time 60 FPS streaming and 1:1 remote interaction for secondary, external, or virtual displays inside a floating, movable, and resizable Picture-in-Picture window with **Ghost Cursor Mode** and **System Tray** support.
 
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
-[![Platform: Windows | macOS | Linux](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux-green.svg)](#5--arsitektur-input-lintas-platform)
+[![Platform: Windows | macOS | Linux](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux-green.svg)](#5--cross-platform-input-architecture)
 [![Electron: v33+](https://img.shields.io/badge/Electron-v33+-47848F.svg)](https://www.electronjs.org/)
 [![Version: 0.3.11](https://img.shields.io/badge/Version-0.3.11-22c55e.svg)](CHANGELOG.md)
 [![CI & Release](https://github.com/RudyCity/show-second-screens/actions/workflows/release.yml/badge.svg)](https://github.com/RudyCity/show-second-screens/actions/workflows/release.yml)
@@ -13,185 +13,207 @@
 
 ---
 
-## 🌟 Mengapa Show Second Screens?
+## 🌟 Why Show Second Screens?
 
-Ketika bekerja dengan banyak monitor atau layar virtual (*Virtual Display Driver / VDD*), memantau layar samping sering kali merepotkan:
-- Anda harus sering memalingkan leher atau memindahkan kursor mouse jauh melintasi beberapa monitor.
-- Layar virtual sering kali tidak memiliki output fisik yang dapat dilihat secara langsung.
-- Kebanyakan aplikasi mirror hanya menampilkan gambar pasif (hanya *view-only*), tanpa kemampuan klik dan kendali langsung.
+Working across multiple monitors or virtual displays (*Virtual Display Driver / VDD*) on a single desk often slows you down:
+- You constantly turn your head or drag your cursor far across screens.
+- Software virtual displays have no physical panel you can glance at directly.
+- Most screen-mirroring tools are passive (*view-only*) and do not let you click or control what you see.
 
-**Show Second Screens** menyelesaikan masalah ini dengan menghadirkan jendela mengambang (*Picture-in-Picture*) yang menampilkan streaming 60 FPS dari layar target lengkap dengan **interaksi remote 1:1**: Anda dapat mengklik, mengetik, scroll, dan drag file pada layar target langsung dari jendela preview tanpa meninggalkan desktop utama Anda!
+**Show Second Screens** solves this by placing a floating, resizable **Picture-in-Picture** window on your main screen that streams your target display at 60 FPS with full **1:1 remote interaction** — click, double-click, right-click, scroll, and drag items on the target display directly from the preview window without leaving your primary workspace.
 
 ---
 
-## 🚀 Fitur Utama
+## 🚀 Key Features
 
-### 1. 🎯 Ghost Cursor & Phantom Injection Mode (Default)
-- **Phantom PostMessage Injection (Zero Cursor Movement)**: Di Windows, aksi klik kiri, double-click, klik kanan, drag, dan scroll dikirim langsung ke jendela target via Win32 `PostMessage` tanpa memindahkan kursor mouse fisik sama sekali. Kursor Anda tetap diam di preview window tanpa kedip atau lompat!
-- **Auto-Fallback Cerdas**: Jika window target berada dalam konteks hak akses terisolasi (UIPI), engine otomatis fallback ke mode hardware ghost injection dengan restorasi kursor mikrodetik (<0.5ms).
-- **Kursor Fisik Tetap di Tangan Anda**: Kursor mouse Anda tidak akan ditarik paksa keluar jendela menuju layar target saat mengarahkan mouse (*hover*).
-- **Opsi Mode Direct**: Tombol `🎯 Tetap di Sini` pada toolbar dapat di-toggle menjadi `🚀 Pindah Layar` jika Anda sengaja ingin memindahkan kursor fisik ke layar target.
+### 1. 🎯 Ghost Cursor Injection Mode (Default)
+- **Hardware `SendInput` + Instant Cursor Restore**: On Windows, left-clicks, double-clicks, right-clicks, drags, and scroll events are executed natively at the OS level via Win32 `SendInput` — working reliably across Browsers, File Explorer, Taskbar, Desktop, UWP/WinUI apps, and window titlebars — then immediately restoring your physical cursor back to the preview window in milliseconds.
+- **Cursor Stays in Your Hand**: Hovering over the preview window never pulls your physical mouse cursor onto the target display.
+- **Direct Mode Option**: Toggle the toolbar button from `🎯 Tetap di Sini` (Ghost Mode) to `🚀 Pindah Layar` (Direct Mode) whenever you intentionally want your physical cursor to move to the target screen.
 
-### 2. 🖥️ Streaming Layar 60 FPS Latensi Ultra-Rendah
-- Menangkap layar target secara *hardware-accelerated* menggunakan Desktop Media Capture WebRTC dengan pipeline GPU *zero-copy*.
-- Pemetaan koordinat *zero-reflow* ($O(1)$ cached geometry) dan *auto-letterbox calculation* untuk menjaga rasio aspek layar target dengan presisi piksel 1:1.
+### 2. 🖥️ Ultra-Low-Latency 60 FPS Streaming
+- Hardware-accelerated screen capture via WebRTC Desktop Media Capture with a zero-copy GPU video compositing pipeline.
+- Zero-reflow coordinate mapping ($O(1)$ cached geometry) and automatic letterbox/pillarbox calculation preserve the target display's exact aspect ratio and 1:1 pixel accuracy across mixed-DPI monitors.
 
-### 3. 📌 Integrasi System Tray (Baki Sistem)
-- Ikon dinamis di pojok Taskbar Windows, macOS Menu Bar, dan Linux AppIndicator.
-- **Menu Konteks Cepat**:
+### 3. 📌 System Tray Integration
+- Always-visible dynamic tray icon in the Windows Taskbar, macOS Menu Bar, and Linux AppIndicator.
+- **Quick Context Menu**:
   - `Show Window` / `Hide Window`
   - `Always On Top` (Toggle)
-  - `Center Window on Active Screen` (Mengembalikan posisi jendela tepat ke tengah monitor aktif)
-  - `☕ Support via Ko-fi` (Membuka jendela donasi Ko-fi langsung di dalam aplikasi)
+  - `Center Window on Active Screen` (Brings the preview window back to the center of the monitor where your cursor is)
+  - `☕ Support via Ko-fi` (Opens the in-app Ko-fi support modal)
   - `Quit`
-- Klik atau double-click pada ikon tray untuk menyembunyikan/menampilkan jendela preview secara instan.
+- Click or double-click the tray icon to toggle preview window visibility instantly.
 
 ### 4. 🪟 Smart Multi-Monitor Window Positioning
-- Jendela aplikasi otomatis mendeteksi posisi kursor Anda saat dibuka (`screen.getDisplayNearestPoint`) dan menempatkan jendela tepat di tengah monitor aktif, bukan tersembunyi di belakang monitor lain.
-- Mendukung mode **Always-on-Top** (*Pin*) dan pengaturan transparansi (*Opacity: 100% / 85% / 65%*).
+- Automatically detects the monitor under your cursor at startup (`screen.getDisplayNearestPoint`) and centers the window there instead of hiding it off-screen.
+- Supports **Always-on-Top** (*Pin*) and cyclic window transparency (**Opacity: 100% / 85% / 65%**).
 
-### 5. 🔄 Arsitektur Input Lintas Platform
-- **Windows**: Menggunakan native Win32 C# daemon (`bin/injector.exe`) dengan `SendInput` & `SetCursorPos`.
-- **macOS**: Menggunakan CoreGraphics / AppleScript / `cliclick` adapter dengan window styling `hiddenInset`.
-- **Linux**: Menggunakan `xdotool` (X11) dan `ydotool` (Wayland) dengan pemulihan lokasi kursor otomatis.
+### 5. 🔄 Cross-Platform Input Architecture
+- **Windows**: Native Win32 C# daemon (`bin/injector.exe`) using Per-Monitor V2 DPI awareness, `SendInput`, `SetCursorPos`, and `EnumDisplayMonitors`.
+- **macOS**: CoreGraphics / AppleScript / `cliclick` adapter with `hiddenInset` titlebar styling.
+- **Linux**: `xdotool` (X11) and `ydotool` (Wayland) adapter with automatic cursor position restoration.
 
 ### 6. 🛡️ Single Instance & Smart Kill Confirmation
-- Mencegah konflik beberapa proses portable atau aplikasi yang berjalan bersamaan di sistem.
-- Menampilkan dialog konfirmasi interaktif saat instance lain terdeteksi (misalnya berjalan di background/tray atau proses macet): user dapat memilih untuk menghentikan (*kill*) proses lama secara bersih atau membatalkan dan fokus ke jendela aktif.
-- Membersihkan proses induk (`Show Second Screens.exe`), wrapper portable, dan subproses daemon (`injector.exe`) secara tuntas menggunakan *process-tree termination*.
+- Prevents duplicate background or portable processes from colliding.
+- Prompts with an interactive dialog when another running instance is detected, letting you cleanly terminate existing processes (`Show Second Screens.exe`, portable wrappers, and `injector.exe`) via process-tree cleanup or bring the active window to focus.
 
 ---
 
-## 📦 Download & Panduan Instalasi (Quick Start)
+## 🧩 Enabling a Virtual Display (VDD)
 
-### Opsi A: Download Installer / Portable Siap Pakai (Windows, macOS, Ubuntu)
-Anda dapat langsung mengunduh paket aplikasi siap pakai tanpa perlu menginstal Node.js dari halaman [**GitHub Releases**](https://github.com/RudyCity/show-second-screens/releases/latest):
-- **Windows (`x64` Portable)**: `Show-Second-Screens-Portable-0.3.11.exe` (double-click langsung jalan tanpa instalasi).
-- **macOS (`arm64` & `x64`)**: `Show-Second-Screens-macOS-0.3.11-<arch>.dmg` atau `.zip`.
-- **Ubuntu / Linux (`x64`)**: `Show-Second-Screens-Linux-0.3.11-x86_64.AppImage` atau `Show-Second-Screens-Linux-0.3.11-amd64.deb`.
+If you only have **one physical monitor** (for example, on a laptop or single-monitor desktop) and want to create a virtual second screen to mirror and control inside **Show Second Screens**:
+
+### Windows 10 / 11 — Virtual Display Driver (VDD)
+We recommend the open-source [**Virtual Display Driver (VDD)**](https://github.com/VirtualDrivers/Virtual-Display-Driver):
+
+1. **Install VDD** via Winget (or download the installer from the [VDD GitHub Releases](https://github.com/VirtualDrivers/Virtual-Display-Driver/releases)):
+   ```powershell
+   winget install --id=VirtualDrivers.Virtual-Display-Driver -e
+   ```
+2. **Enable & Extend the Virtual Monitor**:
+   - Open **Windows Settings → System → Display** (or press `Win + P` and select **Extend**).
+   - Ensure the new virtual display is set to **Extend these displays** (not *Duplicate*) and choose your preferred resolution/refresh rate (e.g., `1920x1080 @ 60Hz`).
+   - Optionally use the bundled *Virtual Driver Control* companion app or `vdd_settings.xml` to toggle the virtual monitor on/off or add multiple virtual screens.
+3. **Select It in Show Second Screens**:
+   - Launch **Show Second Screens** and pick `Screen 2` (your virtual display) from the dropdown selector in the titlebar. You can now view and interact with your virtual display inside a floating window on your main screen!
+
+### macOS & Linux Alternatives
+- **macOS**: Use a virtual display utility such as [BetterDisplay](https://github.com/waydabber/BetterDisplay) or an HDMI/USB-C dummy plug, then set the display to *Extended*.
+- **Ubuntu / Linux**: Create a virtual output using `xrandr` (`--addmode` on a disconnected output or `xserver-xorg-video-dummy`) or a physical dummy plug, then extend your desktop.
 
 ---
 
-### Opsi B: Menjalankan & Build dari Source Code
+## 📦 Download & Quick Start
 
-#### 1. Prasyarat Sistem
-- [Node.js](https://nodejs.org/) (versi 18, 20, atau 22+)
-- **Windows**: Windows 10 / 11 (C# compiler `csc.exe` sudah terpasang bawaan di `.NET Framework`).
-- **macOS**: macOS Monterey / Ventura / Sonoma / Sequoia (opsional: `brew install cliclick` untuk performa input maksimal).
-- **Linux**: Ubuntu / Debian / Fedora / Arch (opsional: `sudo apt install xdotool` untuk simulasi mouse).
+### Option A: Download Pre-Built Binaries (Windows, macOS, Ubuntu)
+Download ready-to-run builds directly from [**GitHub Releases**](https://github.com/RudyCity/show-second-screens/releases/latest) without installing Node.js:
+- **Windows (`x64` Portable)**: `Show-Second-Screens-Portable-0.3.11.exe` (double-click to run immediately, no installation required).
+- **macOS (`arm64` & `x64`)**: `Show-Second-Screens-macOS-0.3.11-<arch>.dmg` or `.zip`.
+- **Ubuntu / Linux (`x64`)**: `Show-Second-Screens-Linux-0.3.11-x86_64.AppImage` or `Show-Second-Screens-Linux-0.3.11-amd64.deb`.
 
-#### 2. Clone Repositori
+---
+
+### Option B: Run & Build from Source
+
+#### 1. Prerequisites
+- [Node.js](https://nodejs.org/) (v18, v20, or v22+)
+- **Windows**: Windows 10 / 11 (`csc.exe` C# compiler is built into `.NET Framework`).
+- **macOS**: macOS Monterey / Ventura / Sonoma / Sequoia (optional: `brew install cliclick` for optimal input injection).
+- **Linux**: Ubuntu / Debian / Fedora / Arch (optional: `sudo apt install xdotool` for X11 mouse simulation).
+
+#### 2. Clone the Repository
 ```bash
 git clone https://github.com/RudyCity/show-second-screens.git
 cd show-second-screens
 ```
 
-#### 3. Instalasi Dependensi
+#### 3. Install Dependencies
 ```bash
 npm install
 ```
 
-#### 4. Kompilasi Input Injector (Khusus Windows, sudah terkompilasi bawaan)
-Jika Anda memodifikasi kode C# di `src/main/input/injector.cs`:
+#### 4. Compile the Windows Input Injector (Optional)
+A precompiled `bin/injector.exe` is included. If you modify `src/main/input/injector.cs`:
 ```powershell
 npm run build:injector
 ```
 
-#### 5. Menjalankan Aplikasi (Mode Development)
+#### 5. Run in Development Mode
 ```bash
 npm start
 ```
 
-#### 6. Membuat Installer / Portable Lintas Platform
-Build untuk **Ubuntu, macOS, dan Windows** dijalankan otomatis melalui GitHub Actions ([`.github/workflows/release.yml`](.github/workflows/release.yml)) setiap push tag `v*` atau *manual dispatch*. Untuk build lokal per platform:
+#### 6. Build Cross-Platform Packages
+Cross-platform release builds for **Ubuntu, macOS, and Windows** run automatically via GitHub Actions ([`.github/workflows/release.yml`](.github/workflows/release.yml)) on every `v*` tag push or manual dispatch. To build locally per platform:
 ```powershell
-# Windows Portable (.exe) — alias: npm run build:portable / npm run dist
+# Windows Portable (.exe) — aliases: npm run build:portable / npm run dist
 npm run build:win
 
-# macOS (.dmg & .zip untuk x64 + arm64, dijalankan di macOS)
+# macOS (.dmg & .zip for x64 + arm64, run on macOS)
 npm run build:mac
 
-# Ubuntu / Linux (.AppImage & .deb, dijalankan di Linux)
+# Ubuntu / Linux (.AppImage & .deb, run on Linux)
 npm run build:linux
 ```
-Hasil build otomatis dibuat di folder `dist/`.
+Output artifacts are placed in `dist/`.
 
 ---
 
-## 🎮 Cara Penggunaan di Jendela Aplikasi
+## 🎮 Controls & Usage
 
-| Tombol / Aksi | Fungsi |
+| Control / Action | Description |
 |---|---|
-| **Pilih Layar (Dropdown)** | Memilih monitor fisik atau virtual yang ingin dipantau. |
-| **Badge Telemetri (`FPS`, `X/Y`)** | Menampilkan frame rate streaming dan koordinat target secara real-time. |
-| **`🎯 Tetap di Sini`** | Toggle mode kursor: **Tetap di Sini (Ghost Mode)** vs **Pindah Layar (Direct Mode)**. |
-| **`📌 Always On Top`** | Mengunci jendela preview agar selalu mengambang di atas jendela aplikasi lain. |
-| **`🌓 100%`** | Mengubah tingkat transparansi jendela (100% $\to$ 85% $\to$ 65%). |
-| **`☕ Donate`** | Membuka jendela modal donasi Ko-fi langsung di dalam aplikasi. |
-| **Klik Kiri Preview** | Mengklik elemen pada monitor target. |
-| **Klik Kanan Preview** | Membuka menu konteks (*Context Menu*) pada monitor target. |
-| **Double Click** | Membuka file, shortcut, atau folder di monitor target. |
-| **Drag & Drop** | Menahan klik kiri sambil menggeser mouse untuk memindahkan objek di layar target. |
-| **Scroll Wheel** | Menggulir layar target ke atas atau ke bawah. |
-| **Ikon System Tray** | Klik kiri untuk sembunyikan/tampilkan jendela; klik kanan untuk menu opsi cepat. |
+| **Display Dropdown** | Select the physical or virtual monitor (e.g., VDD screen) to mirror and control. |
+| **Telemetry Badges (`FPS`, `X/Y`)** | Live stream frame rate and mapped target display coordinates. |
+| **`🎯 Tetap di Sini` / `🚀 Pindah Layar`** | Toggle cursor mode between **Ghost Mode** (cursor stays on main screen) and **Direct Mode** (cursor moves to target screen). |
+| **`📌 Always On Top`** | Pin or unpin the preview window above all other windows. |
+| **`🌓 100%`** | Cycle window opacity (`100%` $\to$ `85%` $\to$ `65%`). |
+| **`☕ Donate`** | Open the in-app Ko-fi support modal window. |
+| **Left Click** | Click elements on the target monitor. |
+| **Right Click** | Open context menus on the target monitor. |
+| **Double Click** | Open files, folders, or shortcuts on the target monitor. |
+| **Drag & Drop** | Hold left-click and drag to move windows, files, or sliders on the target display. |
+| **Scroll Wheel** | Scroll vertically on the target monitor. |
+| **System Tray Icon** | Left-click to show/hide window; right-click for quick controls. |
 
 ---
 
-## 🏗️ Struktur Arsitektur Modular
+## 🏗️ Modular Architecture
 
-Struktur direktori mematuhi Single Responsibility Principle (SRP) dan batasan maksimal 1000 baris per file sesuai panduan [AGENTS.md](AGENTS.md):
+The project strictly follows the Single Responsibility Principle (SRP) and the 1,000-line-per-file cap defined in [AGENTS.md](AGENTS.md):
 
 ```text
 show-second-screens/
 ├── .github/
-│   ├── FUNDING.yml           # Konfigurasi tombol Sponsor GitHub (Ko-fi)
+│   ├── FUNDING.yml           # GitHub Sponsor configuration (Ko-fi)
 │   └── workflows/
 │       └── release.yml       # GitHub Actions CI & Release (Ubuntu, macOS, Windows)
-├── .editorconfig             # Standar indentasi dan formatting berkas
-├── .gitignore                # Aturan ignore berkas build & log
-├── AGENTS.md                 # Standar operasional wajib AI Coding Agent
-├── CHANGELOG.md              # Riwayat perubahan per versi (SemVer)
-├── LICENSE                   # Lisensi Apache 2.0
-├── README.md                 # Dokumentasi publik proyek
-├── electron-builder.json     # Konfigurasi packaging portable Windows (.exe)
-├── package.json              # Manifest dependensi & scripts
+├── .editorconfig             # Code formatting & indentation rules
+├── .gitignore                # Build & log ignore patterns
+├── AGENTS.md                 # AI Coding Agent operational guidelines
+├── CHANGELOG.md              # SemVer release history
+├── LICENSE                   # Apache License 2.0
+├── README.md                 # Project documentation
+├── electron-builder.json     # Cross-platform packaging configuration
+├── package.json              # Project manifest & scripts
 ├── assets/
-│   ├── icon.ico              # Ikon multi-resolusi aplikasi Windows
-│   └── icon.png              # Ikon & logo aplikasi resolusi tinggi
+│   ├── icon.ico              # Multi-resolution Windows app icon
+│   └── icon.png              # High-resolution app & tray icon
 ├── bin/
-│   └── injector.exe          # Binary Win32 C# SendInput/PostMessage daemon
+│   └── injector.exe          # Compiled Win32 C# SendInput/monitor daemon
 ├── scripts/
-│   ├── generate-icon.ps1     # Script generator aset ikon aplikasi
-│   └── start.cjs             # Process launcher dengan filter WebRTC noise
+│   ├── generate-icon.ps1     # App icon asset generator script
+│   └── start.cjs             # Launcher filtering benign WebRTC stderr noise
 ├── src/
-│   ├── main/                 # Main Process (Electron Lifecycle & OS Bridges)
-│   │   ├── index.cjs         # App entrypoint & bootstrap
-│   │   ├── capture/          # Monitor enumeration & capture service
+│   ├── main/                 # Electron Main Process & OS Bridges
+│   │   ├── index.cjs         # Application entrypoint & lifecycle
+│   │   ├── capture/          # Display enumeration & physical monitor matching
 │   │   │   └── displayService.cjs
 │   │   ├── input/            # Cross-platform input injection engine
 │   │   │   ├── inputService.cjs
-│   │   │   ├── injector.cs   # Source code C# Win32 injector
-│   │   │   └── adapters/     # Adapters per platform (Windows, macOS, Linux)
+│   │   │   ├── injector.cs   # Win32 C# SendInput & PostMessage injector source
+│   │   │   └── adapters/     # Platform adapters (Windows, macOS, Linux)
 │   │   │       ├── baseAdapter.cjs
 │   │   │       ├── windowsAdapter.cjs
 │   │   │       ├── macAdapter.cjs
 │   │   │       └── linuxAdapter.cjs
-│   │   ├── instance/         # Single-instance lock & conflict resolver
+│   │   ├── instance/         # Single-instance lock & process conflict handler
 │   │   │   └── singleInstanceManager.cjs
-│   │   ├── ipc/              # IPC Channel Handlers
+│   │   ├── ipc/              # IPC channel handlers
 │   │   │   └── ipcHandlers.cjs
-│   │   ├── tray/             # System Tray Manager (Windows, macOS, Linux)
+│   │   ├── tray/             # Cross-platform System Tray manager
 │   │   │   └── trayManager.cjs
-│   │   └── window/           # Window & Icon Manager (Topmost, Opacity, Donate Modal)
+│   │   └── window/           # Window, Icon & Ko-fi Modal manager
 │   │       ├── iconResolver.cjs
 │   │       └── windowManager.cjs
-│   ├── preload/              # Secure Preload Layer (Context Isolation)
+│   ├── preload/              # Context-isolated preload bridge
 │   │   └── index.cjs
-│   ├── renderer/             # Frontend UI (Preview Viewport & Control Toolbar)
+│   ├── renderer/             # Modular UI (Viewport, Styles & Controller)
 │   │   ├── index.html
 │   │   ├── renderer.js
 │   │   └── styles.css
-│   └── shared/               # Shared Types, DTOs, dan Math Utilities
+│   └── shared/               # Shared types, constants & coordinate math utilities
 │       ├── constants/index.ts
 │       ├── types/index.ts
 │       └── utils/coordinateMapper.ts
@@ -199,48 +221,48 @@ show-second-screens/
 
 ---
 
-## 📐 Formula Pemetaan Koordinat
+## 📐 Coordinate Mapping Formula
 
-Untuk memastikan klik pada kanvas preview tepat sasaran pada monitor fisik target:
+To map preview clicks accurately onto the target physical display:
 
-1. **Rasio Aspek Letterbox**:
+1. **Letterbox / Pillarbox Aspect Ratio**:
    $$\text{Scale} = \min\left(\frac{W_{canvas}}{W_{target}}, \frac{H_{canvas}}{H_{target}}\right)$$
    $$\text{RenderWidth} = W_{target} \times \text{Scale}, \quad \text{RenderHeight} = H_{target} \times \text{Scale}$$
    $$\text{OffsetX} = \frac{W_{canvas} - \text{RenderWidth}}{2}, \quad \text{OffsetY} = \frac{H_{canvas} - \text{RenderHeight}}{2}$$
 
-2. **Normalisasi Posisi Kursor Lokal $(x_{local}, y_{local})$**:
+2. **Normalized Local Cursor Position $(x_{local}, y_{local})$**:
    $$u = \frac{x_{local} - \text{OffsetX}}{\text{RenderWidth}}, \quad v = \frac{y_{local} - \text{OffsetY}}{\text{RenderHeight}}$$
 
-3. **Proyeksi ke Koordinat Fisik Monitor Target**:
+3. **Projection to Physical Target Monitor Coordinates**:
    $$X_{target} = X_{origin} + (u \times W_{target})$$
    $$Y_{target} = Y_{origin} + (v \times H_{target})$$
 
 ---
 
-## 🤝 Panduan Kontribusi & Aturan AI Agent
+## 🤝 Contributing & AI Agent Guidelines
 
-Proyek ini memiliki panduan operasional ketat untuk pengembang dan AI Coding Agent di [AGENTS.md](AGENTS.md):
-- **Modular & High Cohesion**: Dilarang membuat god-object atau menyatukan logika yang tidak sejenis.
-- **Maksimal 1000 Baris Per File**: Setiap berkas kode wajib di bawah 1000 baris. Lakukan refaktor saat mencapai 700–800 baris.
-- **Git Commit Tiap Perubahan**: Gunakan format [Conventional Commits](https://www.conventionalcommits.org/) (`feat:`, `fix:`, `refactor:`, `docs:`).
-- **SemVer**: Perbarui nomor versi di `package.json`, catat di `CHANGELOG.md`, dan sinkronkan `README.md`.
+Contributors and AI Coding Agents must follow the engineering standards in [AGENTS.md](AGENTS.md):
+- **Modular & High Cohesion**: Keep responsibilities cleanly separated; avoid god objects.
+- **Max 1,000 Lines Per File**: Refactor into sub-modules once any file reaches 700–800 lines.
+- **Conventional Commits**: Use `feat:`, `fix:`, `refactor:`, `perf:`, `docs:`, `ci:`, `chore:`.
+- **SemVer Sync**: Keep `package.json`, `CHANGELOG.md`, and `README.md` synchronized for every release.
 
 ---
 
-## ☕ Dukung Pengembang (Support & Donate)
+## ☕ Support the Creator
 
-Jika **Show Second Screens** bermanfaat dan membantu mempermudah alur kerja multitasking harian Anda, Anda dapat memberikan apresiasi dan mentraktir secangkir kopi untuk pengembang melalui **Ko-fi**:
+If **Show Second Screens** improves your multi-monitor or virtual display workflow, consider buying me a coffee on **Ko-fi**:
 
 [![Support me on Ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/rudycity)
 
 👉 **[https://ko-fi.com/rudycity](https://ko-fi.com/rudycity)**
 
-Setiap dukungan sangat berarti untuk keberlanjutan dan penyempurnaan fitur-fitur baru selanjutnya! ❤️
+Every bit of support helps keep improvements and cross-platform builds going! ❤️
 
 ---
 
-## 📄 Lisensi
+## 📄 License
 
-Proyek ini dilisensikan di bawah **Apache License, Version 2.0**. Lihat berkas [LICENSE](LICENSE) untuk ketentuan lengkap.
+This project is licensed under the **Apache License, Version 2.0**. See [LICENSE](LICENSE) for full terms.
 
 Copyright © 2026 **RudyCity**. Licensed under the [Apache License, Version 2.0](LICENSE).

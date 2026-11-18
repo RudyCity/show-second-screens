@@ -39,7 +39,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - **In-App Direct Ko-fi Donation Modal Window**:
   - Implemented `openDonateWindow()` in `WindowManager` (`src/main/window/windowManager.cjs`) to open the Ko-fi donation page directly inside a dedicated in-app modal window anchored to Show Second Screens, eliminating the jarring switch to an external browser.
-  - Sized at 490x720 (optimized for Ko-fi's donation interface) with dark terminal theme styling, custom application menu (`☕ Ko-fi` with Reload/Close, and fallback `🌐 Buka di Browser Luar`).
+  - Sized at 490x720 (optimized for Ko-fi's donation interface) with dark terminal theme styling, custom application menu (`☕ Ko-fi` with Reload/Close, and fallback `🌐 Buka di Browser Luar` / Open in External Browser).
   - Added user-agent sanitization (removing the raw `Electron` token) so Cloudflare bot verification and payment forms (PayPal, Stripe, credit cards) render smoothly.
   - Configured `setWindowOpenHandler` to natively support payment authentication popups (e.g., PayPal checkout / 3D Secure verification).
   - Integrated with titlebar `☕ Donate` button via IPC `system:open-donate` and System Tray menu item `☕ Support via Ko-fi`.
@@ -110,8 +110,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Single Instance Conflict Detection & Kill Confirmation**:
   - Implemented `SingleInstanceManager` (`src/main/instance/singleInstanceManager.cjs`) to enforce single-instance lifecycle across portable executables and normal application launches.
   - When launching the application while an existing instance is already running (e.g. background tray or frozen process), displays a native confirmation dialog:
-    - *"Aplikasi Show Second Screens sudah berjalan. Apakah Anda ingin menghentikan (kill) aplikasi yang sedang berjalan dan membuka yang baru?"*
-    - Buttons: `Hentikan & Buka Baru` (default) dan `Batal`.
+    - *"Aplikasi Show Second Screens sudah berjalan..."* ("Show Second Screens is already running. Do you want to terminate the running instance and open a new one?")
+    - Buttons: `Hentikan & Buka Baru` (Stop & Open New, default) and `Batal` (Cancel).
   - When confirmed, cleanly terminates existing application processes (`Show Second Screens.exe`, `Show-Second-Screens-Portable-*.exe`, and any orphaned `injector.exe`) using process-tree termination (`taskkill /F /PID <pid> /T`), preserving the current launching process and re-acquiring the instance lock or relaunching fresh.
   - If cancelled, automatically brings the existing instance's window to focus (`win.restore()`, `win.show()`, `win.focus()`) and exits the secondary launcher.
 - **Standalone Portable Executable (`dist/Show-Second-Screens-Portable-0.3.5.exe`)**:

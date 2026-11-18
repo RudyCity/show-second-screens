@@ -1,156 +1,154 @@
 # AGENTS.md — Guidelines for AI Coding Agents
 # Project: Show Second Screens (Interactive Target Screen Mirror & Remote Control)
 
-Dokumen ini adalah panduan operasional wajib (Standard Operating Procedures) untuk setiap AI Agent yang bekerja pada repositori **show-second-screens**. Semua instruksi dan batasan di bawah ini bersifat mengikat dan wajib dipatuhi tanpa pengecualian.
+This document defines the mandatory Standard Operating Procedures (SOPs) for every AI Agent working in the **show-second-screens** repository. All rules and constraints below are binding without exception.
 
 ---
 
 ## 1. Project Mission & Core Capabilities
 
-**show-second-screens** adalah aplikasi desktop window cerdas yang dirancang untuk:
-1. **Target Display Previewing**: Menampilkan streaming/preview real-time dari layar target (secondary display, virtual display, atau specific monitor) dengan latensi ultra-rendah dan frame rate optimal.
-2. **Interactive Remote Control**: Memungkinkan interaksi langsung di atas jendela preview (klik kiri, klik kanan, double click, drag-and-drop, scroll wheel, hover, keyboard input) yang dipetakan secara akurat 1:1 ke koordinat layar target asli.
-3. **Movable & Resizable Window**: Jendela preview bersifat mengambang (floating / picture-in-picture), dapat dipindahkan bebas (draggable), dan dapat diubah ukurannya (resizable) dengan tetap mempertahankan rasio aspek layar atau mode fluid.
+**show-second-screens** is a smart desktop utility designed for:
+1. **Target Display Previewing**: Real-time, ultra-low-latency streaming/previewing of a target screen (secondary display, Virtual Display Driver / VDD monitor, or external display) at optimal frame rates.
+2. **Interactive Remote Control**: Direct interaction over the preview window (left click, right click, double click, drag-and-drop, scroll wheel, hover, keyboard input) mapped 1:1 to physical target display coordinates.
+3. **Movable & Resizable Window**: Floating (Picture-in-Picture), freely draggable, and resizable window preserving aspect ratio cleanly.
 
 ---
 
-## 2. Strict Core Mandates (Aturan Mutlak)
+## 2. Strict Core Mandates
 
-Setiap agen yang memodifikasi atau menambahkan kode wajib menjalankan aturan-aturan berikut:
+Every agent modifying or adding code must enforce the following rules:
 
-### 2.1. Koding Selalu Modular (High Cohesion, Loose Coupling)
-- **Single Responsibility Principle (SRP)**: Setiap modul, file, kelas, atau fungsi hanya bertanggung jawab atas satu domain tugas spesifik.
-- Pisahkan secara tegas:
-  - **Screen Capture Engine** (tugas: mengambil frame layar target).
-  - **Coordinate Translation & Mapping Engine** (tugas: menghitung konversi koordinat preview ke monitor fisik).
-  - **Input Injection Engine** (tugas: mensimulasikan mouse & keyboard event di OS level).
-  - **Window Controller** (tugas: mengelola state window, drag, resize, always-on-top, opacity).
-  - **UI / Renderer Layer** (tugas: menampilkan canvas preview, toolbar kontrol, telemetry FPS/latency).
-  - **IPC Communication Layer** (tugas: jembatan komunikasi aman antara Main Process dan Renderer).
-- Hindari god objects, monolithic files, dan tightly-coupled code.
+### 2.1. Modular Code (High Cohesion, Loose Coupling)
+- **Single Responsibility Principle (SRP)**: Each module, file, class, or function owns a single domain responsibility.
+- Maintain strict separation between:
+  - **Screen Capture Engine** (target frame capture & monitor enumeration).
+  - **Coordinate Translation & Mapping Engine** (preview-to-physical monitor coordinate math).
+  - **Input Injection Engine** (OS-level mouse & keyboard simulation).
+  - **Window Controller** (window state, drag, resize, always-on-top, opacity, modals).
+  - **UI / Renderer Layer** (separated HTML markup, CSS styles, and JS controller; no massive inline monoliths).
+  - **IPC Communication Layer** (secure bridge between Main Process and Renderer).
+- Avoid god objects, monolithic files, and tightly coupled code.
 
-### 2.2. Skeleton Rapi (Organized Project Architecture)
-Struktur direktori wajib terorganisir rapi dan berstandar industri:
+### 2.2. Clean Project Architecture
+Keep the directory structure clean and industry-standard:
 
 ```text
 show-second-screens/
+├── .github/
+│   ├── FUNDING.yml
+│   └── workflows/
+│       └── release.yml
 ├── .gitignore
-├── AGENTS.md                 # Aturan utama dan instruksi agen
-├── CHANGELOG.md              # Riwayat perubahan per versi
-├── README.md                 # Dokumentasi publik proyek
-├── package.json              # Manifest proyek dan dependensi
-├── tsconfig.json             # Konfigurasi strict TypeScript
-├── src/
-│   ├── main/                 # Main Process (Node / Electron / Native OS)
-│   │   ├── index.ts          # Entry point & app lifecycle (< 1000 baris)
-│   │   ├── window/           # Window creation, frameless drag, resize manager
-│   │   ├── capture/          # Screen capture services & display enumeration
-│   │   ├── input/            # Native mouse/keyboard simulation & injection
-│   │   └── ipc/              # IPC bridge handlers & contracts
-│   ├── preload/              # Preload scripts (Context Isolation & Secure Bridge)
-│   │   └── index.ts          # API exposure ke renderer
-│   ├── renderer/             # Frontend UI (Preview Canvas & Control HUD)
-│   │   ├── index.html
-│   │   ├── src/
-│   │   │   ├── main.tsx      # Renderer bootstrap
-│   │   │   ├── components/   # UI modular (Canvas, Toolbar, DisplaySelector)
-│   │   │   ├── hooks/        # Coordinate mapping, mouse event listener hooks
-│   │   │   ├── services/     # WebRTC/Canvas stream rendering & IPC clients
-│   │   │   └── styles/       # CSS / Tailwind styles
-│   └── shared/               # Shared contracts, DTOs, dan constants
-│       ├── types/            # Interface Display, InputEvent, WindowConfig
-│       └── constants/        # Action channels, default settings
-└── tests/                    # Unit & E2E tests
+├── AGENTS.md                 # AI agent operational rules
+├── CHANGELOG.md              # SemVer release changelog
+├── LICENSE                   # Apache License 2.0
+├── README.md                 # Public project documentation
+├── electron-builder.json     # Cross-platform packaging config
+├── package.json              # Project manifest & scripts
+├── assets/                   # Application icons (.ico, .png)
+├── bin/                      # Compiled native binaries (injector.exe)
+├── scripts/                  # Launcher & asset helper scripts
+└── src/
+    ├── main/                 # Electron Main Process
+    │   ├── index.cjs         # Entry point & app lifecycle
+    │   ├── capture/          # Screen capture & display enumeration
+    │   ├── input/            # Native input injection & platform adapters
+    │   ├── instance/         # Single-instance lock & conflict resolver
+    │   ├── ipc/              # IPC bridge handlers
+    │   ├── tray/             # System tray manager
+    │   └── window/           # Window, icon & modal management
+    ├── preload/              # Context-isolated preload bridge
+    ├── renderer/             # Modular UI (index.html, styles.css, renderer.js)
+    └── shared/               # Shared contracts, DTOs & math utilities
 ```
 
 ### 2.3. Max 1000 Lines Per File (Hard Limit)
-- **BATAS MAKSIMAL 1000 BARIS PER FILE**: Tidak ada file kode yang boleh melebihi 1000 baris.
-- **Peringatan Refactor**: Jika sebuah file sudah mencapai 700–800 baris, agen **WAJIB** segera memecah (modularisasi) logika file tersebut menjadi sub-modul atau helper terpisah sebelum menambahkan fungsionalitas baru.
-- Jangan pernah menyatukan state management, logic, dan styling/markup dalam satu file raksasa.
+- **HARD CAP OF 1,000 LINES PER FILE**: No source file may exceed 1,000 lines.
+- **Refactor Warning**: Once any file reaches 700–800 lines, agents **MUST** split and modularize its logic into separate modules/helpers before adding new functionality.
+- Never combine state management, business logic, styling, and markup in a single giant file.
 
-### 2.4. Selalu Git Commit Setiap Perubahan
-- Setiap kali agen menyelesaikan sebuah fitur, perbaikan bug, atau refactor modular, agen **WAJIB** melakukan commit ke Git repository.
-- Format commit wajib menggunakan **Conventional Commits**:
-  - `feat: <deskripsi fitur baru>`
-  - `fix: <deskripsi perbaikan bug>`
-  - `refactor: <deskripsi pemecahan kode / perbaikan struktur>`
-  - `perf: <deskripsi optimasi performa/latency/fps>`
-  - `docs: <update dokumentasi>`
-  - `chore: <konfigurasi, dependensi, versi>`
-- Jangan menumpuk banyak pekerjaan tanpa commit. Commit dilakukan secara bertahap dan atomik.
+### 2.4. Git Commit Every Completed Change
+- Whenever an agent completes a feature, bug fix, or modular refactor, the agent **MUST** commit the changes to Git.
+- Commit messages must follow **Conventional Commits**:
+  - `feat: <new feature description>`
+  - `fix: <bug fix description>`
+  - `refactor: <code split / structural improvement>`
+  - `perf: <performance / latency / fps optimization>`
+  - `docs: <documentation update>`
+  - `ci: <CI/CD workflow or build pipeline update>`
+  - `chore: <configuration, dependencies, version>`
+- Keep commits atomic and incremental.
 
-### 2.5. Update Versi, CHANGELOG.md, dan README.md
+### 2.5. Sync Version, CHANGELOG.md, and README.md
 - **Semantic Versioning (SemVer)**:
-  - Perubahan breaking/major -> naikkan versi Major (`1.0.0` -> `2.0.0`).
-  - Fitur baru fungsional -> naikkan versi Minor (`0.1.0` -> `0.2.0`).
-  - Bug fix / optimasi / patch -> naikkan versi Patch (`0.1.0` -> `0.1.1`).
-- **Update Versi**: Sinkronkan nomor versi di `package.json` dan referensi terkait.
-- **Update `CHANGELOG.md`**: Wajib mencatat apa yang ditambah (`Added`), diperbaiki (`Fixed`), diubah (`Changed`), atau dihapus (`Removed`) di bawah versi terkait beserta tanggal.
-- **Update `README.md`**: Perbarui jika ada perubahan instruksi instalasi, cara menjalankan aplikasi, konfigurasi tombol/shortcut, atau arsitektur baru.
+  - Breaking/major changes -> bump Major (`1.0.0` -> `2.0.0`).
+  - New functional features -> bump Minor (`0.1.0` -> `0.2.0`).
+  - Bug fixes / optimizations / patches -> bump Patch (`0.1.0` -> `0.1.1`).
+- **Update Version**: Sync the version number in `package.json` and related references.
+- **Update `CHANGELOG.md`**: Record `Added`, `Fixed`, `Changed`, or `Removed` entries under the corresponding version and date.
+- **Update `README.md`**: Update installation steps, usage instructions, shortcuts/controls, or architecture sections whenever changed.
 
 ---
 
-## 3. Spesifikasi Teknis: Screen Preview & Remote Control
+## 3. Technical Specification: Screen Preview & Remote Control
 
 ### 3.1. Display Enumeration & Capture
-- Sistem harus mampu mendeteksi semua monitor fisik/virtual yang terhubung ke sistem operasi (`screen.getAllDisplays()`).
-- Pengguna dapat memilih monitor target yang ingin dipantau.
-- Capture stream harus mengoptimalkan latensi dan bandwidth (dukungan Desktop Duplication / Media Stream Capture 60 FPS).
+- Detect all physical and virtual displays (including Virtual Display Driver / VDD monitors) connected to the OS (`screen.getAllDisplays()` + native Win32 `EnumDisplayMonitors`).
+- Allow the user to pick the target monitor to preview and control.
+- Optimize capture stream latency and bandwidth (60 FPS Desktop Media Capture with hardware-accelerated zero-copy compositing).
 
-### 3.2. Formula Pemetaan Koordinat (Coordinate Mapping Engine)
-Untuk memastikan klik pada jendela preview tepat sasaran pada layar target:
+### 3.2. Coordinate Mapping Formula
+To ensure preview clicks land accurately on the target physical display:
 
-1. Dapatkan resolusi fisik monitor target: $W_{target}$, $H_{target}$, dan koordinat posisi monitor di virtual desktop: $(X_{target}, Y_{target})$.
-2. Dapatkan ukuran aktual elemen canvas/viewport preview di jendela lokal: $W_{canvas}$, $H_{canvas}$.
-3. Hitung offset letterbox jika rasio aspek jendela tidak identik dengan monitor target:
+1. Obtain target monitor physical resolution $W_{target}$, $H_{target}$ and virtual desktop origin $(X_{target}, Y_{target})$.
+2. Obtain actual rendered preview viewport dimensions $W_{canvas}$, $H_{canvas}$.
+3. Compute letterbox/pillarbox scale and offsets when aspect ratios differ:
    $$\text{Scale} = \min\left(\frac{W_{canvas}}{W_{target}}, \frac{H_{canvas}}{H_{target}}\right)$$
    $$\text{RenderWidth} = W_{target} \times \text{Scale}, \quad \text{RenderHeight} = H_{target} \times \text{Scale}$$
    $$\text{OffsetX} = \frac{W_{canvas} - \text{RenderWidth}}{2}, \quad \text{OffsetY} = \frac{H_{canvas} - \text{RenderHeight}}{2}$$
-4. Hitung posisi relatif kursor lokal $(x_{local}, y_{local})$:
+4. Compute normalized local cursor coordinates $(x_{local}, y_{local})$:
    $$u = \frac{x_{local} - \text{OffsetX}}{\text{RenderWidth}}, \quad v = \frac{y_{local} - \text{OffsetY}}{\text{RenderHeight}}$$
-   *(Abaikan event jika $u < 0$, $u > 1$, $v < 0$, atau $v > 1$)*
-5. Proyeksikan ke koordinat fisik monitor target:
+   *(Ignore events when $u < 0$, $u > 1$, $v < 0$, or $v > 1$)*
+5. Project to physical target monitor coordinates:
    $$X_{target\_coord} = X_{target} + (u \times W_{target})$$
    $$Y_{target\_coord} = Y_{target} + (v \times H_{target})$$
-6. Kirim koordinat target $(X_{target\_coord}, Y_{target\_coord})$ ke **Input Injection Service** via IPC untuk dieksekusi secara instan.
+6. Dispatch $(X_{target\_coord}, Y_{target\_coord})$ to the **Input Injection Service** via IPC.
 
 ### 3.3. Remote Input Simulation
-- Mendukung interaksi lengkap:
-  - Mouse Move (dengan throttle cerdas untuk kelancaran tanpa membani IPC bus).
+- Support full interaction:
+  - Mouse Move (throttled / RAF-batched to avoid IPC saturation).
   - Mouse Down, Mouse Up, Click, Double Click.
-  - Right Click (Context Menu pada layar target).
-  - Mouse Drag (menahan tombol mouse sambil menggeser koordinat).
-  - Mouse Wheel / Scroll (vertikal & horizontal).
-  - Forwarding Keyboard Events (opsional/toggleable saat preview window fokus).
+  - Right Click (Target context menus).
+  - Mouse Drag (button-down hold across coordinates).
+  - Mouse Wheel / Scroll.
+  - Optional/toggleable Keyboard Event forwarding when focused.
 
 ### 3.4. Window Behavior (Draggable & Resizable)
-- Window preview dapat dibuat **frameless** atau dengan custom sleek header.
-- Menyediakan handle drag khusus (CSS `-webkit-app-region: drag` pada titlebar/overlay kontrol) agar window dapat dipindah-pindahkan tanpa mengganggu klik pada area preview interaktif.
-- Area preview canvas menggunakan `-webkit-app-region: no-drag` untuk menerima event mouse interaktif.
-- Mendukung mode **Always on Top** (Pin window di atas window lain), pengaturan transparansi (opacity), dan minimize/maximize.
+- Support frameless or sleek custom headerbar with `-webkit-app-region: drag` on the header and `-webkit-app-region: no-drag` on interactive controls and the preview viewport.
+- Support **Always on Top** pinning, opacity levels, and minimize/maximize/tray hide.
 
 ---
 
-## 4. Best Practices Pengembangan
+## 4. Development Best Practices
 
 1. **PowerShell Compatibility**:
-   - Selalu gunakan tanda titik koma (`;`) sebagai pemisah perintah, **BUKAN** `&&` (contoh: `npm run build; npm test`).
+   - Always use semicolons (`;`) instead of `&&` when chaining PowerShell commands (e.g. `npm run build; npm test`).
 2. **Resource Cleanup**:
-   - Selalu bersihkan (dispose) screen capture stream, timer interval, dan IPC listeners saat window ditutup atau monitor target berganti. Hindari memory leak.
+   - Always dispose screen capture streams, timers, child processes, and IPC listeners on window close or display switch to prevent memory leaks.
 3. **Type Safety**:
-   - Semua kode wajib menggunakan TypeScript strict mode (`"strict": true`). Dilarang menggunakan tipe `any` tanpa alasan yang terdokumentasi jelas.
+   - Enforce strict typing where TypeScript is used (`"strict": true`) and avoid untyped `any` without documented justification.
 4. **Error Handling**:
-   - Tangani skenario ketika monitor target dicabut atau resolusi layar berubah secara dinamis (`display-metrics-changed`).
+   - Handle dynamic display disconnection or DPI/resolution changes cleanly (`display-added`, `display-removed`, `display-metrics-changed`).
 
 ---
 
 ## 5. UI/UX Quality & Frontend Design Standards
 
-Semua tampilan visual dan UI/UX pada proyek ini wajib mematuhi standar desain modern:
-- **Tema Desain**: Modern Dark Terminal / Sleek Minimalist UI dengan aksen kontras yang tajam dan tipografi bersih.
-- **Tactile Feedback**: Kontrol tombol yang responsif dengan status indikator aktif (FPS, latensi ms, resolusi target display).
-- **Non-Obtrusive HUD**: Kontrol overlay (pilih layar, toggle click-through, close, pin) harus ramping, elegan, dan otomatis redup (auto-hide/dim) saat kursor tidak aktif agar tidak menutupi konten preview.
-- Bebas dari AI-slop visual (tanpa gradien ungu generik, tanpa border tebal tidak beralasan, tanpa animasi berlebihan yang mengganggu performa).
+All UI/UX elements must maintain modern visual quality:
+- **Design Theme**: Modern Dark Terminal / Sleek Minimalist UI with crisp contrast and clean typography.
+- **Tactile Feedback**: Responsive controls with live status telemetry (FPS, target coordinates, display resolution).
+- **Non-Obtrusive HUD**: Compact overlay controls that auto-dim when idle so they do not obstruct the mirrored screen.
+- Free of generic AI visual slop (no gratuitous purple gradients, heavy borders, or distracting animations).
 
 <!-- antislop:start -->
 ## antislop
