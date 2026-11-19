@@ -187,9 +187,11 @@
           destination: this.surfaces.get(session.last.video)?.name || 'Display',
           mode: session.mode
         });
-        this.send('dragstart', session.start, {
-          screenX: session.screenX, screenY: session.screenY
-        }, session.mode, { button: session.button });
+        if (!this.replayDrag) {
+          this.send('dragstart', session.start, {
+            screenX: session.screenX, screenY: session.screenY
+          }, session.mode, { button: session.button });
+        }
       }
       if (session.dragging && point) {
         if (this.replayDrag) {

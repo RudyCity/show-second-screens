@@ -30,6 +30,7 @@ function harness() {
   };
   vm.runInNewContext(source, {
     module, require: requireFake, process,
+    __dirname: path.join(__dirname, '../src/main/input/adapters'),
     Buffer, console, Promise, setTimeout, clearTimeout
   });
   const adapter = new module.exports.WindowsAdapter();
