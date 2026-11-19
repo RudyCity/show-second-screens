@@ -177,3 +177,82 @@ test('a late grid capture is discarded after switching back to single mode', asy
   assert.equal(stream.stopped, 1);
   assert.equal(grid.tiles.length, 0);
 });
+
+function pointerAt(x, y = 270) {
+  return { clientX: x, clientY: y, screenX: x + 20, screenY: y + 20,
+    button: 0, preventDefault() {} };
+}
+
+async function twoTileDragHarness(mode = 'ghost') {
+  const events = [];
+  const { GridMode, root, container } = createHarness(async () => mockStream());
+  const grid = new GridMode({
+    container, preference: '2',
+    sendInput: (event) => events.push(event),
+    getCursorMode: () => mode,
+    onCoordinates() {}, onFocus() {}
+  });
+  grid.start([
+    { id: 'A', name: 'Monitor A', sourceId: 'screen:1:0',
+      bounds: { x: 0, y: 0, width: 1920, height: 1080 } },
+    { id: 'B', name: 'Monitor B', sourceId: 'screen:2:0',
+      bounds: { x: -1920, y: 0, width: 1920, height: 1080 } }
+  ]);
+  await new Promise((resolve) => setImmediate(resolve));
+  const first = grid.tiles[0].video;
+  const second = grid.tiles[1].video;
+  first.rect = { left: 0, top: 0, width: 960, height: 540 };
+  second.rect = { left: 960, top: 0, width: 960, height: 540 };
+  return { grid, root, events, first, second };
+}
+
+test('Ghost drag crosses monitor tiles and drops on the actual destination monitor', async () => {
+  const { grid, root, events, first } = await twoTileDragHarness('ghost');
+  first.emit('mousedown', pointerAt(480));
+  root.emit('mousemove', pointerAt(520));
+  root.emit('mousemove', pointerAt(1440));
+  root.emit('mouseup', pointerAt(1440));
+  assert.deepEqual(events.map((event) => event.type), ['dragstart', 'drag', 'drag', 'dragend']);
+  assert.equal(events[0].x, 960);
+  assert.equal(events[2].x, -960);
+  assert.equal(events[3].x, -960);
+  assert.equal(events[3].mode, 'ghost');
+  grid.stop();
+});
+
+test('Direct drag holds the button while transitioning to a different monitor', async () => {
+  const { grid, root, events, first } = await twoTileDragHarness('direct');
+  first.emit('mousedown', pointerAt(480));
+  root.emit('mousemove', pointerAt(1440));
+  root.emit('mouseup', pointerAt(1440));
+  assert.deepEqual(events.map((event) => event.type), ['mousedown', 'drag', 'mouseup']);
+  assert.equal(events[2].x, -960);
+  assert.equal(events[2].mode, 'direct');
+  grid.stop();
+});
+
+test('Leaving a tile does not drop early; losing focus releases an active drag', async () => {
+  const { grid, root, events, first } = await twoTileDragHarness('ghost');
+  first.emit('mousedown', pointerAt(480));
+  root.emit('mousemove', pointerAt(530));
+  first.emit('mouseleave', pointerAt(980));
+  assert.deepEqual(events.map((event) => event.type), ['dragstart', 'drag']);
+  root.emit('blur', {});
+  assert.equal(events.at(-1).type, 'dragend');
+  root.emit('mouseup', pointerAt(1440));
+  assert.equal(events.filter((event) => event.type === 'dragend').length, 1);
+  grid.stop();
+});
+
+test('A cancelled click outside a tile never fires, while teardown releases held direct input', async () => {
+  const { grid, root, events, first } = await twoTileDragHarness('ghost');
+  first.emit('mousedown', pointerAt(480));
+  root.emit('mouseup', pointerAt(2100));
+  assert.equal(events.length, 0);
+  grid.stop();
+
+  const direct = await twoTileDragHarness('direct');
+  direct.first.emit('mousedown', pointerAt(480));
+  direct.grid.stop();
+  assert.deepEqual(direct.events.map((event) => event.type), ['mousedown', 'mouseup']);
+});
