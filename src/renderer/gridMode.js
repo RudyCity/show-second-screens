@@ -204,7 +204,7 @@
       this.container.hidden = true;
     }
 
-    start(displays) {
+    start(displays, emptyMessage) {
       this.stop();
       this.active = true;
       this.container.hidden = false;
@@ -213,7 +213,7 @@
       if (!available.length) {
         const message = document.createElement('p');
         message.className = 'grid-empty';
-        message.textContent = 'No capture-ready displays found. Connect a monitor and select Refresh.';
+        message.textContent = emptyMessage || 'No capture-ready displays found. Connect a monitor and select Refresh.';
         this.container.appendChild(message);
         this.updateColumns();
         return;
