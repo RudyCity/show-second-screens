@@ -5,6 +5,12 @@ const { contextBridge, ipcRenderer } = require('electron');
  */
 contextBridge.exposeInMainWorld('electronAPI', {
   getDisplays: () => ipcRenderer.invoke('display:get-all'),
+  onDisplaysChanged: (callback) => {
+    if (typeof callback !== 'function') return () => {};
+    const listener = () => callback();
+    ipcRenderer.on('display:changed', listener);
+    return () => ipcRenderer.removeListener('display:changed', listener);
+  },
   sendInput: (event) => ipcRenderer.send('input:send-event', event),
   minimizeWindow: () => ipcRenderer.send('window:minimize'),
   maximizeWindow: () => ipcRenderer.send('window:maximize'),
