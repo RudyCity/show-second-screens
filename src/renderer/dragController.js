@@ -8,6 +8,7 @@
       this.sendInput = options.sendInput;
       this.getMode = options.getMode;
       this.onCoordinates = options.onCoordinates || (() => {});
+      this.onDragState = options.onDragState || (() => {});
       this.mapPoint = options.mapPoint || root.GridMath.mapPreviewPoint;
       this.surfaces = new Map();
       this.session = null;
@@ -113,6 +114,12 @@
         button, mode, dragging: mode === 'direct'
       };
       this.pendingDrag = null;
+      this.onDragState({
+        active: true, dragging: false,
+        source: this.surfaces.get(video)?.name || 'Display',
+        destination: this.surfaces.get(video)?.name || 'Display',
+        mode
+      });
       if (mode === 'direct') this.send('mousedown', point, event, mode, { button });
     }
 
@@ -137,12 +144,27 @@
       }
 
       if (point) {
+        const crossed = session.last.video !== point.video;
         session.last = point;
         this.onCoordinates('X: ' + point.pos.targetX + ' Y: ' + point.pos.targetY);
+        if (crossed) {
+          this.onDragState({
+            active: true, dragging: session.dragging,
+            source: this.surfaces.get(session.source)?.name || 'Display',
+            destination: this.surfaces.get(point.video)?.name || 'Display',
+            mode: session.mode
+          });
+        }
       }
       if (!session.dragging && session.button === 'left' &&
           Math.hypot(event.clientX - session.clientX, event.clientY - session.clientY) > 5) {
         session.dragging = true;
+        this.onDragState({
+          active: true, dragging: true,
+          source: this.surfaces.get(session.source)?.name || 'Display',
+          destination: this.surfaces.get(session.last.video)?.name || 'Display',
+          mode: session.mode
+        });
         this.send('dragstart', session.start, {
           screenX: session.screenX, screenY: session.screenY
         }, session.mode, { button: session.button });
@@ -194,6 +216,7 @@
         this.send('click', at, finalEvent, 'ghost', { button: session.button });
       }
       this.onCoordinates('X: -- Y: --');
+      this.onDragState({ active: false });
     }
 
     cancel() { this.finish(null, true); }
