@@ -43,6 +43,7 @@ if (Array.from(gridColumnsSelect.options).some((o) => o.value === savedGridColum
   gridColumnsSelect.value = savedGridColumns;
 }
 
+const dragHint = document.getElementById('dragHint');
 const dragController = new DragController({
   sendInput: (event) => window.electronAPI.sendInput(event),
   getMode: () => cursorMode,
