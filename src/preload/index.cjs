@@ -7,6 +7,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getDisplays: () => ipcRenderer.invoke('display:get-all'),
   getHostDisplay: () => ipcRenderer.invoke('window:get-host-display'),
   identifyDisplays: () => ipcRenderer.invoke('display:identify'),
+  platform: process.platform,
+  moveDuplicateCursor: (point) => ipcRenderer.send('cursor:move', point),
+  hideDuplicateCursor: () => ipcRenderer.send('cursor:hide'),
+  replayNativeDrag: (payload) => ipcRenderer.invoke('input:replay-native-drag', payload),
   onHostDisplayChanged: (callback) => {
     if (typeof callback !== 'function') return () => {};
     const listener = (_event, host) => callback(host);

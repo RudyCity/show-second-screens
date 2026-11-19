@@ -10,6 +10,9 @@ class WindowsAdapter extends BaseAdapter {
   constructor() {
     super();
     this.process = null;
+    this.replayId = 0;
+    this.pendingReplay = new Map();
+    this.outputBuffer = '';
     this.injectorPath = this.resolveInjectorPath();
     this.init();
   }
@@ -39,17 +42,21 @@ class WindowsAdapter extends BaseAdapter {
 
     try {
       this.process = spawn(this.injectorPath, [], {
-        stdio: ['pipe', 'ignore', 'ignore'],
+        stdio: ['pipe', 'pipe', 'ignore'],
         windowsHide: true,
       });
 
-      this.process.on('error', (err) => {
+      const child = this.process;
+      child.stdout.on('data', (chunk) => this.onOutput(chunk));
+      child.on('error', (err) => {
         console.error('[WindowsAdapter] Failed to start injector process:', err);
-        this.process = null;
+        if (this.process === child) this.process = null;
+        this.failPendingReplay('Native injector exited before completing the drag.');
       });
 
-      this.process.on('exit', () => {
-        this.process = null;
+      child.on('exit', () => {
+        if (this.process === child) this.process = null;
+        this.failPendingReplay('Native injector closed during drag replay.');
       });
     } catch (err) {
       console.error('[WindowsAdapter] Exception starting injector:', err);
@@ -62,10 +69,69 @@ class WindowsAdapter extends BaseAdapter {
       this.init();
     }
     if (this.process && this.process.stdin.writable) {
-      this.process.stdin.write(`${command}\n`);
-      return true;
+      try {
+        this.process.stdin.write(`${command}\n`);
+        return true;
+      } catch (error) {
+        console.error('[WindowsAdapter] Cannot write injector command:', error);
+      }
     }
     return false;
+  }
+
+  onOutput(chunk) {
+    this.outputBuffer += String(chunk);
+    if (this.outputBuffer.length > 32768) this.outputBuffer = '';
+    let separator = this.outputBuffer.indexOf('\n');
+    while (separator >= 0) {
+      const line = this.outputBuffer.slice(0, separator).trim();
+      this.outputBuffer = this.outputBuffer.slice(separator + 1);
+      const match = /^REPLAY_RESULT ([0-9]+) (ok|failed)$/.exec(line);
+      if (match) {
+        const pending = this.pendingReplay.get(match[1]);
+        if (pending) {
+          this.pendingReplay.delete(match[1]);
+          clearTimeout(pending.timer);
+          pending.resolve(match[2] === 'ok'
+            ? { ok: true, message: 'Native drag input replay completed. Confirm the result in the target application.' }
+            : { ok: false, message: 'Windows could not inject the native drag. Check desktop permissions and target application.' });
+        }
+      }
+      separator = this.outputBuffer.indexOf('\n');
+    }
+  }
+
+  failPendingReplay(message) {
+    for (const pending of this.pendingReplay.values()) {
+      clearTimeout(pending.timer);
+      pending.resolve({ ok: false, message });
+    }
+    this.pendingReplay.clear();
+  }
+
+  replayNativeDrag(points, ctrl = false, shift = false) {
+    if (!Array.isArray(points) || points.length < 2 || points.length > 192
+      || !points.every(p => p && Number.isSafeInteger(p.x) && Number.isSafeInteger(p.y))) {
+      return Promise.resolve({ ok: false, message: 'Invalid recorded drag coordinates.' });
+    }
+    if (this.pendingReplay.size) {
+      return Promise.resolve({ ok: false, message: 'Another native drag is still running.' });
+    }
+    const payload = Buffer.from(points.map(p => p.x + ',' + p.y).join(';'), 'utf8').toString('base64');
+    const id = String(++this.replayId);
+    return new Promise((resolve) => {
+      const timer = setTimeout(() => {
+        this.pendingReplay.delete(id);
+        resolve({ ok: false, message: 'Native drag replay timed out. Check the target window.' });
+      }, 12000);
+      if (typeof timer.unref === 'function') timer.unref();
+      this.pendingReplay.set(id, { resolve, timer });
+      if (!this.send('replaydrag ' + id + ' ' + payload + ' ' + (ctrl ? '1' : '0') + ' ' + (shift ? '1' : '0'))) {
+        clearTimeout(timer);
+        this.pendingReplay.delete(id);
+        resolve({ ok: false, message: 'Native Windows injector is unavailable.' });
+      }
+    });
   }
 
   ghostClick(x, y, button = 'left', origX = null, origY = null) {
@@ -172,6 +238,7 @@ class WindowsAdapter extends BaseAdapter {
   }
 
   dispose() {
+    this.failPendingReplay('App closed during native drag replay.');
     if (this.process) {
       try {
         this.process.stdin.write('exit\n');

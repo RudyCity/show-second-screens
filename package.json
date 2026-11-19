@@ -1,6 +1,6 @@
 {
   "name": "show-second-screens",
-  "version": "0.8.0",
+  "version": "0.9.0",
   "description": "Interactive real-time preview and remote control window for target displays with accurate coordinate mapping, moving, and resizing.",
   "homepage": "https://github.com/RudyCity/show-second-screens",
   "repository": {
@@ -12,7 +12,7 @@
     "start": "node scripts/start.cjs",
     "test": "node --test",
     "start:raw": "electron .",
-    "build:injector": "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\csc.exe /nologo /optimize /target:winexe /out:bin\\injector.exe src\\main\\input\\injector.cs src\\main\\input\\virtualDrag.cs",
+    "build:injector": "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\csc.exe /nologo /optimize /target:winexe /out:bin\\injector.exe src\\main\\input\\injector.cs src\\main\\input\\virtualDrag.cs src\\main\\input\\nativeDragReplay.cs",
     "prebuild:portable": "npm run build:injector",
     "build:portable": "electron-builder --win portable --publish never",
     "prebuild:win": "npm run build:injector",

@@ -6,7 +6,7 @@
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 [![Platform: Windows | macOS | Linux](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux-green.svg)](#5--cross-platform-input-architecture)
 [![Electron: v33+](https://img.shields.io/badge/Electron-v33+-47848F.svg)](https://www.electronjs.org/)
-[![Version: 0.8.0](https://img.shields.io/badge/Version-0.8.0-22c55e.svg)](CHANGELOG.md)
+[![Version: 0.9.0](https://img.shields.io/badge/Version-0.9.0-22c55e.svg)](CHANGELOG.md)
 [![CI & Release](https://github.com/RudyCity/show-second-screens/actions/workflows/release.yml/badge.svg)](https://github.com/RudyCity/show-second-screens/actions/workflows/release.yml)
 [![GitHub Release](https://img.shields.io/github/v/release/RudyCity/show-second-screens?color=22c55e)](https://github.com/RudyCity/show-second-screens/releases/latest)
 [![Donate: Ko-fi](https://img.shields.io/badge/Ko--fi-Support%20Creator-FF5E5B?logo=ko-fi&logoColor=white)](https://ko-fi.com/rudycity)
@@ -26,11 +26,11 @@ Working across multiple monitors or virtual displays (*Virtual Display Driver / 
 
 ## 🚀 Key Features
 
-### 1. 🎯 Ghost Cursor Mode (Only Mode)
-- **No cursor-mode switch:** the toolbar no longer exposes Direct Mode, and preview hover never moves the pointer to another display.
-- **Click and scroll:** on Windows, standard OS-wide input temporarily positions the system pointer at the remote target and restores it immediately afterward. These brief native moves cannot be guaranteed visually invisible.
-- **Windows native window drag:** dragging a native titlebar in a preview moves the remote top-level window via `SetWindowPos` without changing the physical cursor position.
-- **macOS and X11 limitations:** existing native drag helpers may temporarily move the system cursor during drag. Independent remote hardware pointers are not available without a driver or separate input device.
+### 1. 🎯 Ghost Mode and Duplicate Target Cursor (v0.9.0)
+- **No cursor-mode switch.** As the host mouse moves within a preview, a click-through duplicate arrow follows the matching position on the target monitor. The host pointer remains available in the preview during this gesture.
+- **Windows drag replay:** drag an app titlebar, icon, or selected file in a preview and release over a destination. The app records the mapped screen coordinates, then replays a genuine native left-button drag via Win32 `SendInput`. Unlike the v0.8.0 titlebar-only/Explorer-only handler, this can reach normal Windows drag-and-drop handlers, including OLE, where permitted.
+- **Windows has one real OS cursor.** Only the duplicate cursor is virtual. During replay (after the host button is released), the native pointer *temporarily* travels to the target and returns; this cannot be made strictly cursor-independent without more specialized input architecture.
+- **Click and scroll:** existing Ghost input continues to restore the OS cursor immediately. macOS and X11 keep their previous native drag semantics and can move the physical pointer during dragging.
 
 ### 2. 🕶️ Smart Hide — No More Self-Preview (v0.5.0 source)
 - **On by default.** Automatically stops capturing whichever monitor currently contains the Show Second Screens window, without turning off the physical monitor.
@@ -45,12 +45,12 @@ Working across multiple monitors or virtual displays (*Virtual Display Driver / 
 - Refresh or hot-plug a monitor to rebuild the grid; switching modes stops unused capture streams. The selected view and column preference are retained.
 - Grid and Smart Hide are included in published releases starting with v0.5.0.
 
-### 4. 🖱️ Window Moving and File Transfer (v0.8.0)
-- **Move a Windows app window:** drag its *titlebar* within a monitor preview to reposition that window, including into another monitor shown by a Grid tile. The native helper uses `SetWindowPos`; the physical cursor stays on the host display. Maximized windows must be restored first, and custom client-rendered titlebars may not be recognized.
-- **Move/copy Explorer-selected files:** select files in a remote File Explorer window, then drag from its preview to a *folder open in another Explorer window* in a different preview. A native confirmation is required before any file operation. Ctrl forces copy, Shift forces move; without modifiers, operations follow same-volume move / cross-volume copy semantics. Existing destinations are never overwritten.
-- **Drag files from the host computer:** drag files from a local File Explorer into the app preview at a point showing an open destination Explorer folder. The helper resolves that remote folder and shows the same confirmation.
-- **Cancel is safe:** Esc, loss of focus, app shutdown, or changing preview modes aborts the virtual drag without transferring files. Ordinary clicks still use transient native cursor movement and restore it.
-- **Limits:** this is an Explorer-folder file transfer, **not universal OLE drag-and-drop** into arbitrary apps, desktop icons, websites, or other drop targets. macOS and Linux use their previous native mouse-event drag path and can move the OS pointer during drag. Wayland input is compositor-dependent. Physical multi-monitor runtime verification is still required.
+### 4. 🖱️ Cross-Monitor Drag & Drop (v0.9.0)
+- **Within remote previews (Windows):** keep the left mouse button down, move the duplicate cursor across one or multiple Grid tiles, and release over the target. The input service validates the path, then replays down/move/up through the native Windows mouse input queue. You may briefly see the OS cursor move on replay.
+- **Window dragging and native Windows file drag:** native replay aims to trigger ordinary application drag handlers and Explorer OLE file drops. Ctrl and Shift modifiers are replayed. Success depends on the source app, destination app, permission elevation, and Windows drag policy; native input acknowledgment does **not** prove a file was actually transferred.
+- **Explicit Explorer transfer fallback:** dropping host files onto an Explorer folder shown in a preview still uses the v0.8.0 file operation with confirmation. It does not overwrite existing files.
+- **Cancel:** Esc, loss of preview focus, or switching modes discards the recorded drag before replay. A bounded point history, serialized helper acknowledgments, and input timeouts prevent overlapping native drags.
+- **Limitations:** native drag replay is Windows-only. macOS (cliclick/Accessibility) and X11 (xdotool) retain their prior behavior and can move the OS pointer. Wayland input is compositor-dependent. Physical multi-monitor testing is still required for real-world drag acceptance.
 
 ### 5. 🖥️ Ultra-Low-Latency 60 FPS Streaming
 - Hardware-accelerated screen capture via WebRTC Desktop Media Capture with a zero-copy GPU video compositing pipeline.
@@ -65,7 +65,7 @@ Working across multiple monitors or virtual displays (*Virtual Display Driver / 
   - `☕ Support via Ko-fi` (Opens the in-app Ko-fi support modal)
   - `Quit`
 - Click or double-click the tray icon to toggle preview window visibility instantly.
-- The full application interface, close confirmation, secondary-instance warning, and support-window menu now use English.
+- The full application interface, close confirmation, secondary-instance warning, and support-window menu use English. The duplicate cursor is shown automatically while hovering previews.
 - The titlebar X, Alt+F4, and in-app Close button prompt **Close Window (Keep in Tray)**, **Quit Completely**, or **Cancel**. Closing just the window keeps the process and tray icon running and can be restored through the tray. The tray's **Quit** command (and OS-wide Quit) exits directly without a second prompt.
 - On startup, a single system notification confirms that the app is running in the tray and explains how to reopen or quit it. Windows uses a tray notification; macOS/Linux use native notifications where supported. System notification settings may suppress the alert.
 
@@ -118,9 +118,9 @@ We recommend the open-source [**Virtual Display Driver (VDD)**](https://github.c
 
 ### Option A: Download Pre-Built Binaries (Windows, macOS, Ubuntu)
 Download the latest published builds directly from [**GitHub Releases**](https://github.com/RudyCity/show-second-screens/releases/latest) without installing Node.js:
-- **Windows (`x64` Portable)**: `Show-Second-Screens-Portable-0.8.0.exe` (double-click to run immediately, no installation required).
-- **macOS (`arm64` & `x64`)**: `Show-Second-Screens-macOS-0.8.0-<arch>.dmg` or `.zip`.
-- **Ubuntu / Linux (`x64`)**: `Show-Second-Screens-Linux-0.8.0-x86_64.AppImage` or `Show-Second-Screens-Linux-0.8.0-amd64.deb`.
+- **Windows (`x64` Portable)**: `Show-Second-Screens-Portable-0.9.0.exe` (double-click to run immediately, no installation required).
+- **macOS (`arm64` & `x64`)**: `Show-Second-Screens-macOS-0.9.0-<arch>.dmg` or `.zip`.
+- **Ubuntu / Linux (`x64`)**: `Show-Second-Screens-Linux-0.9.0-x86_64.AppImage` or `Show-Second-Screens-Linux-0.9.0-amd64.deb`.
 
 ---
 

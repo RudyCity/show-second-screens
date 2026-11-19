@@ -2,6 +2,7 @@ const { app, screen } = require('electron');
 const { WindowManager } = require('./window/windowManager.cjs');
 const { DisplayService } = require('./capture/displayService.cjs');
 const { DisplayIdentification } = require('./display/displayIdentification.cjs');
+const { DuplicateCursorManager } = require('./display/duplicateCursorManager.cjs');
 const { InputService } = require('./input/inputService.cjs');
 const { TrayManager } = require('./tray/trayManager.cjs');
 const { registerIpcHandlers } = require('./ipc/ipcHandlers.cjs');
@@ -25,6 +26,7 @@ const gotLock = instanceManager.requestInitialLock();
 let windowManager = null;
 let displayService = null;
 let displayIdentification = null;
+let duplicateCursor = null;
 let inputService = null;
 let trayManager = null;
 
@@ -46,15 +48,20 @@ app.whenReady().then(async () => {
   windowManager = new WindowManager();
   displayService = new DisplayService();
   displayIdentification = new DisplayIdentification();
+  duplicateCursor = new DuplicateCursorManager();
   inputService = new InputService();
   trayManager = new TrayManager(windowManager);
-  windowManager.onVisibilityChanged = () => trayManager.updateContextMenu();
+  windowManager.onVisibilityChanged = () => {
+    trayManager.updateContextMenu();
+    const win = windowManager.getWindow();
+    if (!win || !win.isVisible()) duplicateCursor.hide();
+  };
 
   // Connect WindowManager to SingleInstanceManager for second-instance focus handling
   instanceManager.setWindowManager(windowManager);
 
   // Register IPC bridges and initialize system tray
-  registerIpcHandlers({ displayService, displayIdentification, inputService, windowManager });
+  registerIpcHandlers({ displayService, displayIdentification, duplicateCursor, inputService, windowManager });
   trayManager.init();
 
   const win = windowManager.createWindow();
@@ -71,7 +78,10 @@ app.whenReady().then(async () => {
   };
   for (const eventName of ['display-added', 'display-removed', 'display-metrics-changed']) {
     screen.on(eventName, notifyDisplayChange);
-    screen.on(eventName, () => displayIdentification.clear());
+    screen.on(eventName, () => {
+      displayIdentification.clear();
+      duplicateCursor.clear();
+    });
   }
   app.once('will-quit', () => clearTimeout(displayUpdateTimer));
 
@@ -102,6 +112,7 @@ app.on('before-quit', () => {
 
 app.on('will-quit', () => {
   if (displayIdentification) displayIdentification.clear();
+  if (duplicateCursor) duplicateCursor.clear();
   if (trayManager) {
     trayManager.destroy();
   }

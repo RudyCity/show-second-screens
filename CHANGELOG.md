@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.9.0] - 2026-11-19
+
+### Added
+- **Duplicate target cursor:** a tiny, transparent, click-through cursor overlay follows preview pointer coordinates on the remote monitor without stealing focus or blocking clicks. Cursor mapping supports mixed DPI and negative monitor coordinates; cleanup occurs on preview exit, monitor changes, and app quit.
+- **Windows native drag replay:** preview drag gestures are captured first while the host pointer remains on the preview. On release, recorded coordinates are replayed using real Win32 SendInput mouse-down / mouse-move / mouse-up events, including Ctrl/Shift support and OS cursor restoration.
+- Native replay command acknowledgments and timeout/error handling; input-path validation and regression tests for overlay lifecycle, cancellation, cross-display coordinates, and native helper contracts.
+
+### Changed
+- The existing v0.8.0 virtual window/file drag handlers are retained as a fallback, while Windows preview drags use the new native replay path for broader compatibility with window titlebars and OLE drop targets.
+
+### Limits
+- Windows exposes only one real OS cursor. The duplicate is visual; the system cursor temporarily moves during native replay after release. Synthetic input may be rejected by elevated apps or some drop targets. macOS/Linux retain the previous drag backend. Physical multi-monitor runtime validation is pending.
+
+---
+
 ## [0.8.0] - 2026-11-19
 
 ### Changed

@@ -70,6 +70,13 @@ class InputService {
     return this.adapter.ghostUp(x, y, button, origX, origY);
   }
 
+  replayNativeDrag(points, ctrl = false, shift = false) {
+    if (process.platform !== 'win32') {
+      return Promise.resolve({ ok: false, message: 'Native drag replay requires Windows.' });
+    }
+    return this.adapter.replayNativeDrag(points, ctrl, shift);
+  }
+
   dropFiles(paths, x, y, ctrl = false, shift = false) {
     if (process.platform !== 'win32') return false;
     return this.adapter.dropFiles(paths, x, y, ctrl, shift);

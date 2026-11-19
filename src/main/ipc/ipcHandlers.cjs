@@ -3,7 +3,7 @@ const { ipcMain, shell } = require('electron');
 /**
  * Register all IPC channels between Main process and Renderer.
  */
-function registerIpcHandlers({ displayService, displayIdentification, inputService, windowManager }) {
+function registerIpcHandlers({ displayService, displayIdentification, duplicateCursor, inputService, windowManager }) {
   // Display channels
   ipcMain.handle('display:get-all', async () => {
     return await displayService.getDisplays();
@@ -15,6 +15,41 @@ function registerIpcHandlers({ displayService, displayIdentification, inputServi
     const activeWindow = windowManager.getWindow();
     if (!activeWindow || event.sender !== activeWindow.webContents) return 0;
     return displayIdentification.identify();
+  });
+
+  // A duplicate cursor is a non-interactive overlay on the destination monitor.
+  // Only the preview window is authorized to reposition it.
+  const isMainSender = (event) => {
+    const win = windowManager.getWindow();
+    return !!win && !win.isDestroyed() && event.sender === win.webContents;
+  };
+  ipcMain.on('cursor:move', (event, point) => {
+    if (!isMainSender(event) || !duplicateCursor || !point
+      || !Number.isSafeInteger(point.x) || !Number.isSafeInteger(point.y)) return;
+    duplicateCursor.update(point.x, point.y);
+  });
+  ipcMain.on('cursor:hide', (event) => {
+    if (isMainSender(event) && duplicateCursor) duplicateCursor.hide();
+  });
+
+  // Replay a recorded Windows drag after the physical host button was released.
+  // SendInput dispatch acknowledges input; OLE drop success is app-specific.
+  ipcMain.handle('input:replay-native-drag', async (event, payload) => {
+    if (!isMainSender(event)) return { ok: false, message: 'Invalid source window.' };
+    const points = payload && payload.points;
+    if (!Array.isArray(points) || points.length < 2 || points.length > 192
+      || !points.every(p => p && Number.isSafeInteger(p.x) && Number.isSafeInteger(p.y)
+        && Math.abs(p.x) < 100000 && Math.abs(p.y) < 100000)) {
+      return { ok: false, message: 'Invalid recorded drag path.' };
+    }
+    const displays = await displayService.getDisplays();
+    if (!Array.isArray(displays) || !points.every(p => displays.some(d => d.bounds
+      && p.x >= d.bounds.x && p.x < d.bounds.x + d.bounds.width
+      && p.y >= d.bounds.y && p.y < d.bounds.y + d.bounds.height))) {
+      return { ok: false, message: 'Drag path left the available displays.' };
+    }
+    if (duplicateCursor) duplicateCursor.hide();
+    return inputService.replayNativeDrag(points, !!payload.ctrl, !!payload.shift);
   });
 
   // Electron's native drop paths can only be sent from the trusted main app.

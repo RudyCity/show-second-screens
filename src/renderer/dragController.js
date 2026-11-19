@@ -1,14 +1,17 @@
 (function (root) {
   'use strict';
 
-  // One ghost-pointer gesture spans all preview tiles. On Windows, native
-  // window moves and Explorer file transfers do not warp the physical cursor.
+  // One ghost-pointer gesture spans all preview tiles. On Windows, a visual
+  // duplicate cursor follows the gesture; native replay starts only on release.
   class DragController {
     constructor(options) {
       this.sendInput = options.sendInput;
       this.getMode = () => 'ghost';
       this.onCoordinates = options.onCoordinates || (() => {});
       this.onDragState = options.onDragState || (() => {});
+      this.onPointer = options.onPointer || (() => {});
+      this.replayDrag = typeof options.replayDrag === 'function' ? options.replayDrag : null;
+      this.onReplayResult = options.onReplayResult || (() => {});
       this.mapPoint = options.mapPoint || root.GridMath.mapPreviewPoint;
       this.surfaces = new Map();
       this.session = null;
@@ -28,7 +31,10 @@
         }
       };
       this.onPointerCancel = () => this.cancel();
-      this.onBlur = () => this.cancel();
+      this.onBlur = () => {
+        this.cancel();
+        this.onPointer(null);
+      };
       this.onKey = (event) => {
         if (event.key === 'Escape' && this.session) {
           event.preventDefault();
@@ -126,10 +132,12 @@
         source: video, start: point, last: point,
         clientX: event.clientX, clientY: event.clientY,
         screenX: event.screenX, screenY: event.screenY,
-        button, mode: 'ghost', dragging: false
+        button, mode: 'ghost', dragging: false,
+        path: [{ x: point.pos.targetX, y: point.pos.targetY }]
       };
       this.pendingDrag = null;
       this.armWatchdog();
+      this.onPointer(point.pos);
       this.onDragState({
         active: true, dragging: false,
         source: this.surfaces.get(video)?.name || 'Display',
@@ -141,6 +149,8 @@
     move(event) {
       const point = this.locate(event);
       const session = this.session;
+      if (point) this.onPointer(point.pos);
+      else if (!session) this.onPointer(null);
       if (session && typeof event.buttons === 'number') {
         const mask = session.button === 'right' ? 2 : session.button === 'middle' ? 4 : 1;
         if ((event.buttons & mask) === 0) {
@@ -182,6 +192,10 @@
         }, session.mode, { button: session.button });
       }
       if (session.dragging && point) {
+        if (this.replayDrag) {
+          this.recordPoint(session, point);
+          return;
+        }
         this.pendingDrag = { point, event: { screenX: event.screenX, screenY: event.screenY } };
         if (!this.dragScheduled) {
           this.dragScheduled = true;
@@ -191,6 +205,18 @@
           });
         }
       }
+    }
+
+    recordPoint(session, point, force = false) {
+      const next = { x: point.pos.targetX, y: point.pos.targetY };
+      const path = session.path;
+      const previous = path[path.length - 1];
+      if (!force && Math.hypot(next.x - previous.x, next.y - previous.y) < 4) return;
+      if (path.length >= 190) {
+        // Keep the start, drop alternate intermediary samples, preserve the end.
+        session.path = [path[0], ...path.slice(2).filter((_, index) => index % 2 === 0)];
+      }
+      session.path.push(next);
     }
 
     flushDrag() {
@@ -209,7 +235,11 @@
       if (!session) return;
       const at = cancelled ? null : this.locate(event);
       if (at) session.last = at;
-      this.flushDrag();
+      if (this.replayDrag && session.dragging && at) {
+        this.recordPoint(session, at, true);
+      } else if (!this.replayDrag) {
+        this.flushDrag();
+      }
       this.session = null;
       this.pendingDrag = null;
       clearTimeout(this.releaseTimer);
@@ -222,9 +252,25 @@
         screenY: Number.isFinite(session.screenY) ? session.screenY : 0
       };
       const finalEvent = event && Number.isFinite(event.screenX) ? event : origin;
+      this.onPointer(null);
       if (session.dragging) {
-        this.send(cancelled ? 'dragcancel' : 'dragend', session.last, finalEvent, 'ghost',
-          { button: session.button, ctrlKey: !!finalEvent.ctrlKey, shiftKey: !!finalEvent.shiftKey });
+        if (this.replayDrag) {
+          if (!cancelled && at && session.path.length >= 2) {
+            const payload = {
+              points: session.path,
+              ctrl: !!finalEvent.ctrlKey,
+              shift: !!finalEvent.shiftKey
+            };
+            Promise.resolve().then(() => this.replayDrag(payload))
+              .then((result) => this.onReplayResult(result))
+              .catch((error) => this.onReplayResult({
+                ok: false, message: 'Native drag replay failed: ' + error.message
+              }));
+          }
+        } else {
+          this.send(cancelled ? 'dragcancel' : 'dragend', session.last, finalEvent, 'ghost',
+            { button: session.button, ctrlKey: !!finalEvent.ctrlKey, shiftKey: !!finalEvent.shiftKey });
+        }
       } else if (!cancelled && at && at.video === session.source) {
         this.send('click', at, finalEvent, 'ghost', { button: session.button });
       }
@@ -237,6 +283,7 @@
     dispose() {
       if (this.disposed) return;
       this.cancel();
+      this.onPointer(null);
       this.disposed = true;
       clearTimeout(this.hoverTimer);
       clearTimeout(this.releaseTimer);

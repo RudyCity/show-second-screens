@@ -357,6 +357,27 @@ namespace ShowSecondScreens.Input
                         }
                         break;
 
+                    // Recorded, native drag replay. This runs only after the host
+                    // preview releases the mouse, preserving preview mouse events.
+                    // The helper acknowledges input dispatch, not the OLE effect.
+                    case "replaydrag":
+                        if (parts.Length >= 5)
+                        {
+                            bool sent = false;
+                            try
+                            {
+                                sent = NativeDragReplay.Replay(parts[2],
+                                    parts[3] == "1", parts[4] == "1");
+                            }
+                            catch (Exception error)
+                            {
+                                Console.Error.WriteLine("[NativeDragReplay] " + error.Message);
+                            }
+                            Console.WriteLine("REPLAY_RESULT " + parts[1] + " " + (sent ? "ok" : "failed"));
+                            Console.Out.Flush();
+                        }
+                        break;
+
                     // Cursor-independent native drag protocol. Window moves use
                     // SetWindowPos; Explorer-to-Explorer file transfers use Shell
                     // automation and require confirmation before changing files.

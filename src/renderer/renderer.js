@@ -52,17 +52,46 @@ function showDropFeedback(message) {
   dragHint.hidden = false;
   dropFeedbackTimer = setTimeout(() => { dragHint.hidden = true; }, 5500);
 }
+const nativeReplayAvailable = window.electronAPI.platform === 'win32'
+  && typeof window.electronAPI.replayNativeDrag === 'function';
+let pendingCursor = null;
+let cursorFramePending = false;
+function updateDuplicateCursor(point) {
+  if (typeof window.electronAPI.moveDuplicateCursor !== 'function') return;
+  pendingCursor = point ? { x: Math.round(point.targetX), y: Math.round(point.targetY) } : null;
+  if (!point) {
+    if (typeof window.electronAPI.hideDuplicateCursor === 'function') {
+      window.electronAPI.hideDuplicateCursor();
+    }
+    return;
+  }
+  if (cursorFramePending) return;
+  cursorFramePending = true;
+  requestAnimationFrame(() => {
+    cursorFramePending = false;
+    if (pendingCursor) window.electronAPI.moveDuplicateCursor(pendingCursor);
+  });
+}
+
 const dragController = new DragController({
   sendInput: (event) => window.electronAPI.sendInput(event),
   getMode: () => 'ghost',
+  onPointer: updateDuplicateCursor,
+  replayDrag: nativeReplayAvailable
+    ? (payload) => window.electronAPI.replayNativeDrag(payload)
+    : undefined,
+  onReplayResult: (result) => showDropFeedback(result && result.message
+    ? result.message : 'Native drag replay did not return a result.'),
   onCoordinates: (text) => { latestCoordText = text; },
   onDragState: (state) => {
     if (!dragHint) return;
     dragHint.hidden = !state.active;
     if (state.active) {
       dragHint.textContent = state.dragging
-        ? 'Dragging: ' + state.source + ' → ' + state.destination + ' · Release to drop'
-        : 'Hold and move to drag · Esc releases';
+        ? (nativeReplayAvailable
+          ? 'Virtual cursor: ' + state.source + ' → ' + state.destination + ' · Release to replay native drop'
+          : 'Dragging: ' + state.source + ' → ' + state.destination + ' · Release to drop')
+        : 'Hold and move to drag · Esc cancels';
     }
   },
 });
@@ -216,6 +245,7 @@ window.addEventListener('beforeunload', () => {
   gridMode.stop();
   stopSingleCapture();
   dragController.dispose();
+  updateDuplicateCursor(null);
   clearTimeout(dropFeedbackTimer);
 });
 
