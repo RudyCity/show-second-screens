@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.6.0] - 2026-11-19
+
+### Added
+- Shared drag-and-drop controller for Single and Grid previews, allowing one drag gesture to cross preview tiles and map the drop to another monitor.
+- Native macOS `cliclick` and Linux X11 `xdotool` drag-down/move/up sequences with serialized and coalesced commands and cursor restoration.
+- Compact drag status overlay showing source and destination monitors, plus Esc-release and timed cleanup of lost mouse buttons.
+- Regression coverage for cross-monitor drag, cancellation on blur, changing modes, and native command ordering.
+
+### Fixed
+- Drag no longer ends merely because the pointer leaves the preview video.
+- Prevented lost mouse-up and command reordering from leaving remote input buttons held after display changes or interrupted capture.
+- Moved mouse input handling into a dedicated controller shared by both display modes.
+
+### Notes
+- Windows physical cursor follows the OS drag while held and is restored on release; this is not a fully independent second cursor.
+- macOS requires `cliclick` and Accessibility permission. Linux X11 requires `xdotool`; Wayland drag is not guaranteed.
+
+---
+
 ## [0.5.0] - 2026-11-19
 
 ### Added
