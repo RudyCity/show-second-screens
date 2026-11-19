@@ -54,25 +54,54 @@ class MockElement {
   setAttribute(key, value) { this[key] = value; }
   addEventListener(key, callback) { this.listeners.set(key, callback); }
   removeEventListener(key) { this.listeners.delete(key); }
-  getBoundingClientRect() { return { left: 0, top: 0, width: 960, height: 540 }; }
+  getBoundingClientRect() { return this.rect || { left: 0, top: 0, width: 960, height: 540 }; }
   play() { return Promise.resolve(); }
   emit(key, e) { if (this.listeners.has(key)) this.listeners.get(key)(e); }
 }
 
 function createHarness(getUserMedia) {
-  const root = { GridMath: require('../src/renderer/gridMath.js'),
-    addEventListener() {}, removeEventListener() {} };
+  const root = {
+    GridMath: require('../src/renderer/gridMath.js'),
+    handlers: new Map(),
+    addEventListener(event, callback) {
+      const listeners = this.handlers.get(event) || [];
+      listeners.push(callback);
+      this.handlers.set(event, listeners);
+    },
+    removeEventListener(event, callback) {
+      this.handlers.set(event, (this.handlers.get(event) || []).filter((listener) => listener !== callback));
+    },
+    emit(event, data) {
+      for (const listener of this.handlers.get(event) || []) listener(data);
+    }
+  };
   const context = {
     window: root,
-    document: { createElement: (tag) => new MockElement(tag) },
+    document: {
+      createElement: (tag) => new MockElement(tag),
+      addEventListener() {}, removeEventListener() {}, hidden: false
+    },
     navigator: { mediaDevices: { getUserMedia } },
     ResizeObserver: class { observe() {} disconnect() {} },
     requestAnimationFrame(callback) { callback(); },
     setTimeout, clearTimeout
   };
-  const source = fs.readFileSync(path.join(__dirname, '../src/renderer/gridMode.js'), 'utf8');
-  vm.runInNewContext(source, context);
-  return { GridMode: root.GridMode, container: new MockElement('div') };
+  const dragSource = fs.readFileSync(path.join(__dirname, '../src/renderer/dragController.js'), 'utf8');
+  vm.runInNewContext(dragSource, context);
+  const gridSource = fs.readFileSync(path.join(__dirname, '../src/renderer/gridMode.js'), 'utf8');
+  vm.runInNewContext(gridSource, context);
+  class ConnectedGridMode extends root.GridMode {
+    constructor(options) {
+      const dragController = new root.DragController({
+        sendInput: options.sendInput,
+        getMode: options.getCursorMode,
+        onCoordinates: options.onCoordinates,
+      });
+      super({ ...options, dragController });
+      this.dragController = dragController;
+    }
+  }
+  return { GridMode: ConnectedGridMode, root, container: new MockElement('div') };
 }
 
 function mockStream() {
@@ -87,7 +116,7 @@ function mockStream() {
 test('grid captures each monitor independently, maps clicks, focuses a tile and cleans up', async () => {
   const streams = [mockStream(), mockStream()];
   const captures = [];
-  const { GridMode, container } = createHarness(async (constraints) => {
+  const { GridMode, root, container } = createHarness(async (constraints) => {
     captures.push(constraints.video.mandatory.chromeMediaSourceId);
     return streams[captures.length - 1];
   });
@@ -115,7 +144,7 @@ test('grid captures each monitor independently, maps clicks, focuses a tile and 
   const pointer = { clientX: 480, clientY: 270, screenX: 500,
     screenY: 300, button: 0, preventDefault() {} };
   firstVideo.emit('mousedown', pointer);
-  firstVideo.emit('mouseup', pointer);
+  root.emit('mouseup', pointer);
   assert.equal(inputEvents.length, 1);
   assert.equal(inputEvents[0].type, 'click');
   assert.equal(inputEvents[0].x, 960);
