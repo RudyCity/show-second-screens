@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.4.0] - 2026-11-19
+
+### Added
+- Multi-monitor Grid Mode with independent per-display capture streams, Auto/2/3/4-column responsive layouts, Focus-to-single action, and persistent view preference.
+- Per-tile Ghost/Direct mouse controls with video letterbox-aware physical coordinate mapping, stream teardown, stale capture protection, and monitor hot-plug refresh.
+- Grid coordinate unit tests wired into cross-platform CI builds.
+
+---
+
 ## [0.3.11] - 2026-11-18
 
 ### Fixed
