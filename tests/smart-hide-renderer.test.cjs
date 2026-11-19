@@ -27,9 +27,9 @@ class FakeElement {
   }
   addEventListener(name, callback) { this.listeners.set(name, callback); }
   removeEventListener(name) { this.listeners.delete(name); }
-  emit(name) {
+  emit(name, supplied) {
     const callback = this.listeners.get(name);
-    if (callback) callback({ preventDefault() {} });
+    if (callback) return callback(supplied || { preventDefault() {} });
   }
   setAttribute() {}
   appendChild(item) { this.children.push(item); }
@@ -43,7 +43,7 @@ async function renderWith(host, displays) {
     'titlebar', 'screenSelect', 'screenVideo', 'viewportContainer',
     'placeholder', 'placeholderText', 'fpsDisplay', 'coordDisplay',
     'btnMode', 'btnPin', 'btnOpacity', 'btnGrid', 'gridColumns',
-    'btnRefresh', 'btnIdentify', 'btnSmartHide', 'screenGrid', 'btnDonate'
+    'btnRefresh', 'btnIdentify', 'btnSmartHide', 'screenGrid', 'btnDonate', 'dragHint'
   ];
   const elements = Object.fromEntries(names.map((name) => [name, new FakeElement()]));
   elements.gridColumns.options = ['auto', '2', '3', '4'].map((value) => ({ value }));
@@ -52,6 +52,7 @@ async function renderWith(host, displays) {
   const storage = new Map();
   const captures = [];
   const gridViews = [];
+  const dropRequests = [];
   const identifyCalls = [];
   let onHostMoved;
   let currentHost = host;
@@ -71,7 +72,12 @@ async function renderWith(host, displays) {
         onDisplaysChanged() {},
         onHostDisplayChanged: (callback) => { onHostMoved = callback; },
         sendInput() {},
-        setAlwaysOnTop() {}, setOpacity() {}, openDonate() {}
+        setAlwaysOnTop() {}, setOpacity() {}, openDonate() {},
+        getDroppedFilePath(file) { return file.path; },
+        async dropFilesIntoDisplay(payload) {
+          dropRequests.push(payload);
+          return { ok: true, message: 'Confirm the destination in Windows.' };
+        }
       }
     },
     document: {
@@ -101,6 +107,7 @@ async function renderWith(host, displays) {
     // Smart Hide tests mock input; drag integration is tested independently.
     DragController: class {
       addSurface() { return () => {}; }
+      locate() { return { pos: { targetX: -900, targetY: 550 } }; }
       dispose() {}
     },
     SmartHide,
@@ -114,7 +121,7 @@ async function renderWith(host, displays) {
   await new Promise((resolve) => setImmediate(resolve));
 
   return {
-    elements, captures, gridViews, storage, identifyCalls,
+    elements, captures, gridViews, storage, identifyCalls, dropRequests,
     moveTo(newHost) { currentHost = newHost; onHostMoved(newHost); }
   };
 }
@@ -162,4 +169,28 @@ test('Identify button requests a native label for each screen', async () => {
   assert.equal(ui.identifyCalls.length, 1);
   assert.equal(ui.elements.btnIdentify.disabled, false);
   assert.match(ui.elements.btnIdentify.title, /2 displays/);
+});
+
+test('dropping native files from the host onto the preview requests a confirmed transfer', async () => {
+  const ui = await renderWith({ id: '100' }, [first, second]);
+  let prevented = 0;
+  const event = {
+    clientX: 320, clientY: 200, ctrlKey: false, shiftKey: true,
+    dataTransfer: {
+      types: ['Files'],
+      files: [{ path: 'C:\\Users\\Public\\Documents\\example.txt' }],
+      dropEffect: ''
+    },
+    preventDefault() { prevented++; }
+  };
+  ui.elements.viewportContainer.emit('dragover', event);
+  assert.equal(event.dataTransfer.dropEffect, 'move');
+  await ui.elements.viewportContainer.emit('drop', event);
+  assert.equal(prevented, 2);
+  assert.equal(ui.dropRequests.length, 1);
+  assert.equal(ui.dropRequests[0].paths.length, 1);
+  assert.equal(ui.dropRequests[0].x, -900);
+  assert.equal(ui.dropRequests[0].y, 550);
+  assert.equal(ui.dropRequests[0].shift, true);
+  assert.match(ui.elements.dragHint.textContent, /Confirm the destination/);
 });

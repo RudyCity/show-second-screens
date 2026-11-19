@@ -29,5 +29,6 @@ test('renderer exposes an English Identify Displays control', () => {
   const html = fs.readFileSync(path.join(__dirname, '../src/renderer/index.html'), 'utf8');
   assert.match(html, /id="btnIdentify"/);
   assert.match(html, /aria-label="Identify connected displays"/);
-  assert.match(html, /id="btnMode"[^>]*>🎯 Stay Here/);
+  assert.doesNotMatch(html, /id="btnMode"/);
+  assert.doesNotMatch(html, /Stay Here|Move Cursor|Tetap di Sini|Pindah Layar/);
 });

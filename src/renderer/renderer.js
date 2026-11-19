@@ -7,7 +7,7 @@ let displayLoadGeneration = 0;
 let hostDisplay = null;
 let preferredSingleId = null;
 let isAlwaysOnTop = true;
-let cursorMode = 'ghost'; // 'ghost' = cursor stays 100% on current desktop! 'direct' = cursor moves to target display
+// Preview input always uses Ghost mode; no cursor-mode switch.
 let opacityLevels = [1.0, 0.85, 0.65];
 let opacityIndex = 0;
 let lastFrameTime = performance.now();
@@ -24,7 +24,6 @@ const placeholder = document.getElementById('placeholder');
 const placeholderText = document.getElementById('placeholderText');
 const fpsDisplay = document.getElementById('fpsDisplay');
 const coordDisplay = document.getElementById('coordDisplay');
-const btnMode = document.getElementById('btnMode');
 const btnPin = document.getElementById('btnPin');
 const btnOpacity = document.getElementById('btnOpacity');
 const btnGrid = document.getElementById('btnGrid');
@@ -45,9 +44,17 @@ if (Array.from(gridColumnsSelect.options).some((o) => o.value === savedGridColum
 }
 
 const dragHint = document.getElementById('dragHint');
+let dropFeedbackTimer = null;
+function showDropFeedback(message) {
+  if (!dragHint) return;
+  clearTimeout(dropFeedbackTimer);
+  dragHint.textContent = message;
+  dragHint.hidden = false;
+  dropFeedbackTimer = setTimeout(() => { dragHint.hidden = true; }, 5500);
+}
 const dragController = new DragController({
   sendInput: (event) => window.electronAPI.sendInput(event),
-  getMode: () => cursorMode,
+  getMode: () => 'ghost',
   onCoordinates: (text) => { latestCoordText = text; },
   onDragState: (state) => {
     if (!dragHint) return;
@@ -153,6 +160,41 @@ gridColumnsSelect.addEventListener('change', () => {
   gridMode.setColumns(gridColumnsSelect.value);
 });
 btnRefresh.addEventListener('click', () => loadDisplays());
+
+// Drag files from a local Explorer window onto a remote Explorer window shown
+// in the preview. The real cursor stays on the host screen; the Windows native
+// helper resolves the target folder and asks for confirmation before transfer.
+viewportContainer.addEventListener('dragover', (event) => {
+  if (!event.dataTransfer || !Array.from(event.dataTransfer.types || []).includes('Files')) return;
+  if (!dragController.locate(event)) return;
+  event.preventDefault();
+  event.dataTransfer.dropEffect = event.shiftKey ? 'move' : 'copy';
+});
+viewportContainer.addEventListener('drop', async (event) => {
+  if (!event.dataTransfer || !Array.from(event.dataTransfer.types || []).includes('Files')) return;
+  event.preventDefault();
+  const at = dragController.locate(event);
+  if (!at) {
+    showDropFeedback('Drop onto a monitor preview containing an open File Explorer destination.');
+    return;
+  }
+  try {
+    const files = Array.from(event.dataTransfer.files || []);
+    const paths = files.map((file) => window.electronAPI.getDroppedFilePath(file)).filter(Boolean);
+    if (!paths.length || paths.length !== files.length) {
+      showDropFeedback('These dragged items do not expose local file paths.');
+      return;
+    }
+    const result = await window.electronAPI.dropFilesIntoDisplay({
+      paths, x: at.pos.targetX, y: at.pos.targetY,
+      ctrl: !!event.ctrlKey, shift: !!event.shiftKey
+    });
+    showDropFeedback(result && result.message ? result.message : 'File drop could not be started.');
+  } catch (error) {
+    console.error('File drop failed:', error);
+    showDropFeedback('File drop failed: ' + error.message);
+  }
+});
 btnIdentify.addEventListener('click', async () => {
   btnIdentify.disabled = true;
   try {
@@ -174,6 +216,7 @@ window.addEventListener('beforeunload', () => {
   gridMode.stop();
   stopSingleCapture();
   dragController.dispose();
+  clearTimeout(dropFeedbackTimer);
 });
 
 // Titlebar Auto-dim on idle mouse
@@ -187,13 +230,6 @@ function resetDimTimer() {
 }
 window.addEventListener('mousemove', resetDimTimer);
 resetDimTimer();
-
-// Mode Toggle (Ghost Cursor vs Direct Warp)
-btnMode.addEventListener('click', () => {
-  cursorMode = cursorMode === 'ghost' ? 'direct' : 'ghost';
-  btnMode.textContent = cursorMode === 'ghost' ? '🎯 Stay Here' : '🚀 Move Cursor';
-  btnMode.classList.toggle('active', cursorMode === 'ghost');
-});
 
 // Window Controls
 btnPin.addEventListener('click', () => {

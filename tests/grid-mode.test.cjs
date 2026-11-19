@@ -220,14 +220,14 @@ test('Ghost drag crosses monitor tiles and drops on the actual destination monit
   grid.stop();
 });
 
-test('Direct drag holds the button while transitioning to a different monitor', async () => {
+test('Ghost-only drag moves across tiles without direct mouse commands', async () => {
   const { grid, root, events, first } = await twoTileDragHarness('direct');
   first.emit('mousedown', pointerAt(480));
   root.emit('mousemove', pointerAt(1440));
   root.emit('mouseup', pointerAt(1440));
-  assert.deepEqual(events.map((event) => event.type), ['mousedown', 'drag', 'mouseup']);
+  assert.deepEqual(events.map((event) => event.type), ['dragstart', 'drag', 'dragend']);
   assert.equal(events[2].x, -960);
-  assert.equal(events[2].mode, 'direct');
+  assert.equal(events[2].mode, 'ghost');
   grid.stop();
 });
 
@@ -238,9 +238,9 @@ test('Leaving a tile does not drop early; losing focus releases an active drag',
   first.emit('mouseleave', pointerAt(980));
   assert.deepEqual(events.map((event) => event.type), ['dragstart', 'drag']);
   root.emit('blur', {});
-  assert.equal(events.at(-1).type, 'dragend');
+  assert.equal(events.at(-1).type, 'dragcancel');
   root.emit('mouseup', pointerAt(1440));
-  assert.equal(events.filter((event) => event.type === 'dragend').length, 1);
+  assert.equal(events.filter((event) => event.type === 'dragend').length, 0);
   grid.stop();
 });
 
@@ -251,8 +251,9 @@ test('A cancelled click outside a tile never fires, while teardown releases held
   assert.equal(events.length, 0);
   grid.stop();
 
-  const direct = await twoTileDragHarness('direct');
-  direct.first.emit('mousedown', pointerAt(480));
-  direct.grid.stop();
-  assert.deepEqual(direct.events.map((event) => event.type), ['mousedown', 'mouseup']);
+  const cancelled = await twoTileDragHarness('ghost');
+  cancelled.first.emit('mousedown', pointerAt(480));
+  cancelled.root.emit('mousemove', pointerAt(530));
+  cancelled.grid.stop();
+  assert.deepEqual(cancelled.events.map((event) => event.type), ['dragstart', 'drag', 'dragcancel']);
 });

@@ -1,12 +1,12 @@
 (function (root) {
   'use strict';
 
-  // One drag session spans all preview tiles. Coordinates always belong to the
-  // destination monitor, while a single OS mouse button remains held.
+  // One ghost-pointer gesture spans all preview tiles. On Windows, native
+  // window moves and Explorer file transfers do not warp the physical cursor.
   class DragController {
     constructor(options) {
       this.sendInput = options.sendInput;
-      this.getMode = options.getMode;
+      this.getMode = () => 'ghost';
       this.onCoordinates = options.onCoordinates || (() => {});
       this.onDragState = options.onDragState || (() => {});
       this.mapPoint = options.mapPoint || root.GridMath.mapPreviewPoint;
@@ -21,6 +21,13 @@
 
       this.onMove = (event) => this.move(event);
       this.onUp = (event) => this.finish(event, false);
+      this.onPointerDown = (event) => {
+        if (!event.target || !this.surfaces.has(event.target)) return;
+        if (typeof event.target.setPointerCapture === 'function' && event.pointerId !== undefined) {
+          try { event.target.setPointerCapture(event.pointerId); } catch (_) { /* Unsupported capture. */ }
+        }
+      };
+      this.onPointerCancel = () => this.cancel();
       this.onBlur = () => this.cancel();
       this.onKey = (event) => {
         if (event.key === 'Escape' && this.session) {
@@ -33,6 +40,8 @@
       };
       root.addEventListener('mousemove', this.onMove, true);
       root.addEventListener('mouseup', this.onUp, true);
+      root.addEventListener('pointerdown', this.onPointerDown, true);
+      root.addEventListener('pointercancel', this.onPointerCancel, true);
       root.addEventListener('blur', this.onBlur);
       root.addEventListener('keydown', this.onKey, true);
       root.addEventListener('beforeunload', this.onBlur);
@@ -117,7 +126,7 @@
         source: video, start: point, last: point,
         clientX: event.clientX, clientY: event.clientY,
         screenX: event.screenX, screenY: event.screenY,
-        button, mode, dragging: mode === 'direct'
+        button, mode: 'ghost', dragging: false
       };
       this.pendingDrag = null;
       this.armWatchdog();
@@ -127,7 +136,6 @@
         destination: this.surfaces.get(video)?.name || 'Display',
         mode
       });
-      if (mode === 'direct') this.send('mousedown', point, event, mode, { button });
     }
 
     move(event) {
@@ -144,17 +152,6 @@
       if (!session) {
         if (!point) return;
         this.onCoordinates('X: ' + point.pos.targetX + ' Y: ' + point.pos.targetY);
-        if (this.getMode() !== 'direct') return;
-        this.lastHover = { point, screenX: event.screenX, screenY: event.screenY };
-        if (!this.hoverTimer) {
-          this.hoverTimer = setTimeout(() => {
-            this.hoverTimer = null;
-            if (this.session || !this.lastHover) return;
-            const hover = this.lastHover;
-            this.lastHover = null;
-            this.send('mousemove', hover.point, hover, 'direct');
-          }, 16);
-        }
         return;
       }
 
@@ -225,10 +222,9 @@
         screenY: Number.isFinite(session.screenY) ? session.screenY : 0
       };
       const finalEvent = event && Number.isFinite(event.screenX) ? event : origin;
-      if (session.mode === 'direct') {
-        this.send('mouseup', session.last, finalEvent, 'direct', { button: session.button });
-      } else if (session.dragging) {
-        this.send('dragend', session.last, finalEvent, 'ghost', { button: session.button });
+      if (session.dragging) {
+        this.send(cancelled ? 'dragcancel' : 'dragend', session.last, finalEvent, 'ghost',
+          { button: session.button, ctrlKey: !!finalEvent.ctrlKey, shiftKey: !!finalEvent.shiftKey });
       } else if (!cancelled && at && at.video === session.source) {
         this.send('click', at, finalEvent, 'ghost', { button: session.button });
       }
@@ -246,6 +242,8 @@
       clearTimeout(this.releaseTimer);
       root.removeEventListener('mousemove', this.onMove, true);
       root.removeEventListener('mouseup', this.onUp, true);
+      root.removeEventListener('pointerdown', this.onPointerDown, true);
+      root.removeEventListener('pointercancel', this.onPointerCancel, true);
       root.removeEventListener('blur', this.onBlur);
       root.removeEventListener('keydown', this.onKey, true);
       root.removeEventListener('beforeunload', this.onBlur);

@@ -1,4 +1,4 @@
-const { contextBridge, ipcRenderer } = require('electron');
+const { contextBridge, ipcRenderer, webUtils } = require('electron');
 
 /**
  * Expose secure APIs from Main process to the Renderer window.
@@ -20,6 +20,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     return () => ipcRenderer.removeListener('display:changed', listener);
   },
   sendInput: (event) => ipcRenderer.send('input:send-event', event),
+  getDroppedFilePath: (file) => webUtils.getPathForFile(file),
+  dropFilesIntoDisplay: (payload) => ipcRenderer.invoke('files:drop-into-display', payload),
   minimizeWindow: () => ipcRenderer.send('window:minimize'),
   maximizeWindow: () => ipcRenderer.send('window:maximize'),
   closeWindow: () => ipcRenderer.send('window:close'),

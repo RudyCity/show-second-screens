@@ -50,6 +50,31 @@ class InputService {
     this.adapter.ghostDrag(x, y);
   }
 
+  virtualDragStart(x, y, button = 'left', origX = null, origY = null) {
+    if (process.platform === 'win32') return this.adapter.virtualDragStart(x, y);
+    return this.adapter.ghostDown(x, y, button, origX, origY);
+  }
+
+  virtualDragMove(x, y) {
+    if (process.platform === 'win32') return this.adapter.virtualDragMove(x, y);
+    return this.adapter.ghostDrag(x, y);
+  }
+
+  virtualDragEnd(x, y, button = 'left', origX = null, origY = null, ctrl = false, shift = false) {
+    if (process.platform === 'win32') return this.adapter.virtualDragEnd(x, y, ctrl, shift);
+    return this.adapter.ghostUp(x, y, button, origX, origY);
+  }
+
+  virtualDragCancel(x, y, button = 'left', origX = null, origY = null) {
+    if (process.platform === 'win32') return this.adapter.virtualDragCancel();
+    return this.adapter.ghostUp(x, y, button, origX, origY);
+  }
+
+  dropFiles(paths, x, y, ctrl = false, shift = false) {
+    if (process.platform !== 'win32') return false;
+    return this.adapter.dropFiles(paths, x, y, ctrl, shift);
+  }
+
   // Phantom Mode passthrough (PostMessage injection, cursor never moves)
   phantomClick(x, y, button = 'left') {
     this.adapter.phantomClick(x, y, button);

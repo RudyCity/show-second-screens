@@ -198,6 +198,7 @@ namespace ShowSecondScreens.Input
             return "[" + string.Join(",", list.ToArray()) + "]";
         }
 
+        [STAThread]
         public static void Main(string[] args)
         {
             try { AttachConsole(-1); } catch { }
@@ -354,6 +355,33 @@ namespace ShowSecondScreens.Input
                                 SetCursorPos(tx, ty);
                             }
                         }
+                        break;
+
+                    // Cursor-independent native drag protocol. Window moves use
+                    // SetWindowPos; Explorer-to-Explorer file transfers use Shell
+                    // automation and require confirmation before changing files.
+                    case "virtualdragstart":
+                        if (parts.Length >= 3)
+                            VirtualDrag.Start(int.Parse(parts[1]), int.Parse(parts[2]));
+                        break;
+                    case "virtualdragmove":
+                        if (parts.Length >= 3)
+                            VirtualDrag.Move(int.Parse(parts[1]), int.Parse(parts[2]));
+                        break;
+                    case "virtualdragend":
+                        if (parts.Length >= 3)
+                            VirtualDrag.Finish(int.Parse(parts[1]), int.Parse(parts[2]),
+                                parts.Length >= 4 && parts[3] == "1",
+                                parts.Length >= 5 && parts[4] == "1");
+                        break;
+                    case "virtualdragcancel":
+                        VirtualDrag.Cancel();
+                        break;
+                    case "virtualfiledrop":
+                        if (parts.Length >= 4)
+                            VirtualDrag.DropFiles(parts[3], int.Parse(parts[1]), int.Parse(parts[2]),
+                                parts.Length >= 5 && parts[4] == "1",
+                                parts.Length >= 6 && parts[5] == "1");
                         break;
 
                     // ---------------- Ghost Mode (SendInput + instant cursor restore) ----------------

@@ -63,7 +63,9 @@ class WindowsAdapter extends BaseAdapter {
     }
     if (this.process && this.process.stdin.writable) {
       this.process.stdin.write(`${command}\n`);
+      return true;
     }
+    return false;
   }
 
   ghostClick(x, y, button = 'left', origX = null, origY = null) {
@@ -93,6 +95,30 @@ class WindowsAdapter extends BaseAdapter {
 
   ghostDrag(x, y) {
     this.send(`ghostdrag ${Math.round(x)} ${Math.round(y)}`);
+  }
+
+  // A virtual drag doesn't warp the physical mouse pointer. Windows titlebars
+  // move using SetWindowPos, and Explorer file transfers require confirmation.
+  virtualDragStart(x, y) {
+    return this.send(`virtualdragstart ${Math.round(x)} ${Math.round(y)}`);
+  }
+
+  virtualDragMove(x, y) {
+    return this.send(`virtualdragmove ${Math.round(x)} ${Math.round(y)}`);
+  }
+
+  virtualDragEnd(x, y, ctrl = false, shift = false) {
+    return this.send(`virtualdragend ${Math.round(x)} ${Math.round(y)} ${ctrl ? 1 : 0} ${shift ? 1 : 0}`);
+  }
+
+  virtualDragCancel() {
+    return this.send('virtualdragcancel');
+  }
+
+  dropFiles(paths, x, y, ctrl = false, shift = false) {
+    if (!Array.isArray(paths) || !paths.length || paths.length > 100) return false;
+    const payload = Buffer.from(paths.join('\n'), 'utf8').toString('base64');
+    return this.send(`virtualfiledrop ${Math.round(x)} ${Math.round(y)} ${payload} ${ctrl ? 1 : 0} ${shift ? 1 : 0}`);
   }
 
   // Phantom Mode: events delivered via PostMessage to the window under the

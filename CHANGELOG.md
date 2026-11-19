@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.8.0] - 2026-11-19
+
+### Changed
+- Removed the Stay Here / Move Cursor toggle. All preview events use Ghost mode; direct cursor warp is rejected by the IPC input gateway.
+- Window and Explorer file dragging on Windows now use cursor-independent native routes rather than holding a synthetic mouse down while moving the physical pointer out of the preview.
+
+### Added
+- Windows native top-level titlebar positioning using Win32 hit testing and SetWindowPos, with mouse remaining on the host display.
+- Explicit, confirmed Explorer-to-Explorer file copy/move between screen previews, plus file drops from the local File Explorer onto a remote Explorer folder visible in a preview. Transfers never overwrite existing destinations.
+- IPC sender and input checks, pointer capture, cancellation that does not commit a transfer, and regression tests for the virtual drag and file-drop contracts.
+
+### Limitations
+- Explorer file transfer is not generic OLE drag-and-drop into arbitrary apps. Custom or maximized titlebars may not be movable. macOS/X11 native drag can temporarily move the pointer, and Wayland support is compositor-dependent. Runtime checks on physical monitors remain necessary.
+
+---
+
 ## [0.7.0] - 2026-11-19
 
 ### Added
