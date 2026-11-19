@@ -9,6 +9,8 @@ function registerIpcHandlers({ displayService, inputService, windowManager }) {
     return await displayService.getDisplays();
   });
 
+  ipcMain.handle('window:get-host-display', () => windowManager.getHostDisplay());
+
   // Input injection channels
   ipcMain.on('input:send-event', (event, inputEvent) => {
     if (!inputEvent || typeof inputEvent !== 'object') return;
