@@ -16,6 +16,7 @@
       this.dragScheduled = false;
       this.hoverTimer = null;
       this.lastHover = null;
+      this.releaseTimer = null;
       this.disposed = false;
 
       this.onMove = (event) => this.move(event);
@@ -99,6 +100,11 @@
       };
     }
 
+    armWatchdog() {
+      clearTimeout(this.releaseTimer);
+      this.releaseTimer = setTimeout(() => this.cancel(), 30000);
+    }
+
     start(video, event) {
       if (event.button !== 0 && event.button !== 1 && event.button !== 2) return;
       const point = this.locate(event, video);
@@ -114,6 +120,7 @@
         button, mode, dragging: mode === 'direct'
       };
       this.pendingDrag = null;
+      this.armWatchdog();
       this.onDragState({
         active: true, dragging: false,
         source: this.surfaces.get(video)?.name || 'Display',
@@ -126,6 +133,14 @@
     move(event) {
       const point = this.locate(event);
       const session = this.session;
+      if (session && typeof event.buttons === 'number') {
+        const mask = session.button === 'right' ? 2 : session.button === 'middle' ? 4 : 1;
+        if ((event.buttons & mask) === 0) {
+          this.cancel();
+          return;
+        }
+      }
+      if (session) this.armWatchdog();
       if (!session) {
         if (!point) return;
         this.onCoordinates('X: ' + point.pos.targetX + ' Y: ' + point.pos.targetY);
@@ -200,6 +215,8 @@
       this.flushDrag();
       this.session = null;
       this.pendingDrag = null;
+      clearTimeout(this.releaseTimer);
+      this.releaseTimer = null;
       this.lastHover = null;
       clearTimeout(this.hoverTimer);
       this.hoverTimer = null;
@@ -226,6 +243,7 @@
       this.cancel();
       this.disposed = true;
       clearTimeout(this.hoverTimer);
+      clearTimeout(this.releaseTimer);
       root.removeEventListener('mousemove', this.onMove, true);
       root.removeEventListener('mouseup', this.onUp, true);
       root.removeEventListener('blur', this.onBlur);
