@@ -38,27 +38,34 @@ class FakeElement {
   play() { return Promise.resolve(); }
 }
 
-async function renderWith(host, displays) {
+async function renderWith(host, displays, initialSettings = {}) {
   const names = [
     'titlebar', 'screenSelect', 'screenVideo', 'viewportContainer',
     'placeholder', 'placeholderText', 'fpsDisplay', 'coordDisplay',
     'btnMode', 'btnPin', 'btnOpacity', 'btnGrid', 'gridColumns',
-    'btnRefresh', 'btnIdentify', 'btnSmartHide', 'screenGrid', 'btnDonate', 'dragHint'
+    'btnRefresh', 'btnIdentify', 'btnSmartHide', 'screenGrid', 'btnDonate', 'dragHint', 'fpsSelect'
   ];
   const elements = Object.fromEntries(names.map((name) => [name, new FakeElement()]));
   elements.gridColumns.options = ['auto', '2', '3', '4'].map((value) => ({ value }));
   elements.gridColumns.value = 'auto';
+  elements.fpsSelect.options = ['15', '24', '30', '60'].map(value => ({ value }));
 
-  const storage = new Map();
+  const storage = new Map(Object.entries(initialSettings));
   const captures = [];
   const gridViews = [];
+  const gridRates = [];
   const dropRequests = [];
   const identifyCalls = [];
   let onHostMoved;
   let currentHost = host;
   const gridMode = class {
-    start(visible) { gridViews.push(visible.map((d) => d.id)); }
+    constructor(options) { this.fps = options.fps; this.tiles = []; }
+    start(visible) {
+      gridViews.push(visible.map((d) => d.id));
+      gridRates.push(this.fps);
+    }
     stop() {}
+    setFps(value) { this.fps = value; }
     setColumns() {}
   };
   const context = {
@@ -92,7 +99,11 @@ async function renderWith(host, displays) {
             getTracks: () => [{ stop() { stopped++; } }],
             get stopped() { return stopped; }
           };
-          captures.push({ source: options.video.mandatory.chromeMediaSourceId, stream });
+          captures.push({
+            source: options.video.mandatory.chromeMediaSourceId,
+            fps: options.video.mandatory.maxFrameRate,
+            stream
+          });
           return stream;
         }
       }
@@ -111,6 +122,7 @@ async function renderWith(host, displays) {
       dispose() {}
     },
     SmartHide,
+    CaptureSettings: require('../src/renderer/captureSettings.js'),
     requestAnimationFrame() {},
     setTimeout: () => 1,
     clearTimeout() {},
@@ -121,7 +133,7 @@ async function renderWith(host, displays) {
   await new Promise((resolve) => setImmediate(resolve));
 
   return {
-    elements, captures, gridViews, storage, identifyCalls, dropRequests,
+    elements, captures, gridViews, gridRates, storage, identifyCalls, dropRequests,
     moveTo(newHost) { currentHost = newHost; onHostMoved(newHost); }
   };
 }
@@ -193,4 +205,39 @@ test('dropping native files from the host onto the preview requests a confirmed 
   assert.equal(ui.dropRequests[0].y, 550);
   assert.equal(ui.dropRequests[0].shift, true);
   assert.match(ui.elements.dragHint.textContent, /Confirm the destination/);
+});
+
+test('FPS setting persists and restarts only the selected single-screen capture', async () => {
+  const ui = await renderWith({ id: '100' }, [first, second]);
+  assert.equal(ui.elements.fpsSelect.value, '60');
+  assert.equal(ui.captures[0].fps, 60);
+  assert.equal(ui.elements.fpsDisplay.textContent, 'FPS: -- / 60');
+
+  ui.elements.fpsSelect.value = '24';
+  ui.elements.fpsSelect.emit('change');
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(ui.storage.get('show-screen:target-fps'), '24');
+  assert.equal(ui.captures[0].stream.stopped, 1);
+  assert.equal(ui.captures[1].source, 'screen:2:0');
+  assert.equal(ui.captures[1].fps, 24);
+  assert.equal(ui.elements.fpsDisplay.textContent, 'FPS: -- / 24');
+
+  // No unnecessary restart if the same valid value is selected again.
+  ui.elements.fpsSelect.emit('change');
+  assert.equal(ui.captures.length, 2);
+});
+
+test('saved FPS is restored at startup and updated in Grid Mode for all tiles', async () => {
+  const ui = await renderWith({ id: '100' }, [first, second], {
+    'show-screen:target-fps': '30'
+  });
+  assert.equal(ui.elements.fpsSelect.value, '30');
+  assert.equal(ui.captures[0].fps, 30);
+  ui.elements.btnGrid.emit('click');
+  assert.equal(ui.gridRates.at(-1), 30);
+  ui.elements.fpsSelect.value = '15';
+  ui.elements.fpsSelect.emit('change');
+  assert.equal(ui.storage.get('show-screen:target-fps'), '15');
+  assert.equal(ui.gridRates.at(-1), 15);
+  assert.deepEqual(ui.gridViews.at(-1), ['second']);
 });

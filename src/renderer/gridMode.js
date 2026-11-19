@@ -8,6 +8,7 @@
       this.dragController = options.dragController;
       this.onFocus = options.onFocus;
       this.preference = options.preference || 'auto';
+      this.fps = root.CaptureSettings.normalizeFps(options.fps);
       this.tiles = [];
       this.active = false;
       this.generation = 0;
@@ -15,6 +16,10 @@
         ? new ResizeObserver(() => this.updateColumns()) : null;
       if (this.resizeObserver) this.resizeObserver.observe(this.container);
       window.addEventListener('resize', () => this.updateColumns());
+    }
+
+    setFps(value) {
+      this.fps = root.CaptureSettings.normalizeFps(value);
     }
 
     setColumns(preference) {
@@ -102,19 +107,7 @@
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
           audio: false,
-          video: {
-            mandatory: {
-              chromeMediaSource: 'desktop',
-              chromeMediaSourceId: display.sourceId,
-              minWidth: display.bounds.width,
-              maxWidth: display.bounds.width,
-              minHeight: display.bounds.height,
-              maxHeight: display.bounds.height,
-              minFrameRate: 15,
-              maxFrameRate: 60
-            },
-            optional: [{ cursor: 'never' }]
-          }
+          video: root.CaptureSettings.desktopVideoConstraints(display, this.fps)
         });
 
         // A previously requested capture must never resurrect after mode changes.

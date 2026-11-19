@@ -62,6 +62,7 @@ class MockElement {
 function createHarness(getUserMedia) {
   const root = {
     GridMath: require('../src/renderer/gridMath.js'),
+    CaptureSettings: require('../src/renderer/captureSettings.js'),
     handlers: new Map(),
     addEventListener(event, callback) {
       const listeners = this.handlers.get(event) || [];
@@ -256,4 +257,40 @@ test('A cancelled click outside a tile never fires, while teardown releases held
   cancelled.root.emit('mousemove', pointerAt(530));
   cancelled.grid.stop();
   assert.deepEqual(cancelled.events.map((event) => event.type), ['dragstart', 'drag', 'dragcancel']);
+});
+
+test('Grid Mode applies an updated FPS cap to each new desktop capture', async () => {
+  const captured = [];
+  const streams = [];
+  const { GridMode } = createHarness(async (constraints) => {
+    captured.push(constraints.video);
+    const stream = mockStream();
+    streams.push(stream);
+    return stream;
+  });
+  const grid = new GridMode({
+    container: new MockElement('div'),
+    preference: 'auto',
+    fps: 24,
+    sendInput() {}, onFocus() {},
+    getCursorMode: () => 'ghost'
+  });
+  const displays = [
+    { id: 'A', sourceId: 'screen:1:0', name: 'Primary',
+      bounds: { x: 0, y: 0, width: 1280, height: 720 } },
+    { id: 'B', sourceId: 'screen:2:0', name: 'Secondary',
+      bounds: { x: 1280, y: 0, width: 1920, height: 1080 } }
+  ];
+  grid.start(displays);
+  await new Promise(resolve => setImmediate(resolve));
+  assert.deepEqual(captured.map(c => c.mandatory.maxFrameRate), [24, 24]);
+  grid.setFps('60');
+  grid.start(displays);
+  await new Promise(resolve => setImmediate(resolve));
+  assert.deepEqual(captured.map(c => c.mandatory.maxFrameRate), [24, 24, 60, 60]);
+  assert.equal(streams[0].stopped, 1);
+  assert.equal(streams[1].stopped, 1);
+  grid.stop();
+  assert.equal(streams[2].stopped, 1);
+  assert.equal(streams[3].stopped, 1);
 });

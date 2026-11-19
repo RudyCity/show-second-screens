@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.10.0] - 2026-11-19
+
+### Added
+- **Capture FPS setting** in the titlebar with 15, 24, 30 and 60 FPS options (60 by default), persisted in localStorage.
+- Changing the FPS target restarts only the active Single or Grid capture streams while retaining monitor selection, Smart Hide, and view mode.
+- Per-video telemetry reports actual decoded frame rate and the selected target; the grid reports the average of available decoded frame measurements and uses `--` if counters are unavailable.
+- Capture-settings, persistence, stream-restart, and grid-rate tests to prevent regressions.
+
+### Changed
+- Both Single and Grid mode use the same validated capture constraints and FPS ceiling instead of separate hard-coded minimum and maximum settings.
+- Removed obsolete Direct Mode controls from README documentation.
+
+---
+
 ## [0.9.1] - 2026-11-19
 
 ### Improved

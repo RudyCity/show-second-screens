@@ -122,6 +122,7 @@
   }
   .titlebar-left, .titlebar-right { flex-wrap: wrap; }
   .telemetry { display: none; }
+  .fps-control { display: inline-flex; }
 }
 
 @media (max-width: 520px) {

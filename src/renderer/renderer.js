@@ -10,9 +10,9 @@ let isAlwaysOnTop = true;
 // Preview input always uses Ghost mode; no cursor-mode switch.
 let opacityLevels = [1.0, 0.85, 0.65];
 let opacityIndex = 0;
-let lastFrameTime = performance.now();
-let frameCount = 0;
-let fps = 0;
+let lastTelemetryTime = performance.now();
+let videoFpsSamples = new WeakMap();
+let currentCaptureFps = null;
 let latestCoordText = null;
 
 // Elements
@@ -23,6 +23,10 @@ const viewportContainer = document.getElementById('viewportContainer');
 const placeholder = document.getElementById('placeholder');
 const placeholderText = document.getElementById('placeholderText');
 const fpsDisplay = document.getElementById('fpsDisplay');
+const fpsSelect = document.getElementById('fpsSelect');
+let targetFps = CaptureSettings.normalizeFps(localStorage.getItem(CaptureSettings.STORAGE_KEY));
+fpsSelect.value = String(targetFps);
+fpsDisplay.textContent = 'FPS: -- / ' + targetFps;
 const coordDisplay = document.getElementById('coordDisplay');
 const btnPin = document.getElementById('btnPin');
 const btnOpacity = document.getElementById('btnOpacity');
@@ -101,6 +105,7 @@ let singleInputCleanup = null;
 const gridMode = new GridMode({
   container: document.getElementById('screenGrid'),
   preference: gridColumnsSelect.value,
+  fps: targetFps,
   dragController,
   onFocus: (display) => {
     preferredSingleId = display.id;
@@ -116,6 +121,7 @@ function stopSingleCapture() {
   }
   if (currentStream) currentStream.getTracks().forEach((track) => track.stop());
   currentStream = null;
+  currentCaptureFps = null;
   screenVideo.srcObject = null;
   screenVideo.onloadedmetadata = null;
   activeDisplay = null;
@@ -143,6 +149,7 @@ function setViewMode(mode) {
         || activeDisplay.sourceId !== target.sourceId
         || activeDisplay.bounds.width !== target.bounds.width
         || activeDisplay.bounds.height !== target.bounds.height
+        || currentCaptureFps !== targetFps
         || !currentStream;
       if (staleCapture) switchDisplay(target);
     } else {
@@ -190,6 +197,18 @@ gridColumnsSelect.addEventListener('change', () => {
   gridMode.setColumns(gridColumnsSelect.value);
 });
 btnRefresh.addEventListener('click', () => loadDisplays());
+fpsSelect.addEventListener('change', () => {
+  const next = CaptureSettings.normalizeFps(fpsSelect.value);
+  fpsSelect.value = String(next);
+  if (next === targetFps) return;
+  targetFps = next;
+  localStorage.setItem(CaptureSettings.STORAGE_KEY, String(targetFps));
+  gridMode.setFps(targetFps);
+  videoFpsSamples = new WeakMap();
+  fpsDisplay.textContent = 'FPS: -- / ' + targetFps;
+  // Recreate only the active capture(s), preserving selected monitor and mode.
+  setViewMode(viewMode);
+});
 
 // Drag files from a local Explorer window onto a remote Explorer window shown
 // in the preview. The real cursor stays on the host screen; the Windows native
@@ -293,6 +312,7 @@ if (btnDonate) {
 async function switchDisplay(display) {
   if (!display || !display.sourceId) return;
   const captureGeneration = ++singleCaptureGeneration;
+  const captureFps = targetFps;
 
   if (singleInputCleanup) {
     singleInputCleanup();
@@ -310,21 +330,7 @@ async function switchDisplay(display) {
   try {
     const stream = await navigator.mediaDevices.getUserMedia({
       audio: false,
-      video: {
-        mandatory: {
-          chromeMediaSource: 'desktop',
-          chromeMediaSourceId: display.sourceId,
-          minWidth: display.bounds.width,
-          maxWidth: display.bounds.width,
-          minHeight: display.bounds.height,
-          maxHeight: display.bounds.height,
-          minFrameRate: 30,
-          maxFrameRate: 60,
-        },
-        optional: [
-          { cursor: 'never' },
-        ],
-      },
+      video: CaptureSettings.desktopVideoConstraints(display, captureFps),
     });
 
     if (captureGeneration !== singleCaptureGeneration || viewMode === 'grid') {
@@ -332,6 +338,7 @@ async function switchDisplay(display) {
       return;
     }
     currentStream = stream;
+    currentCaptureFps = captureFps;
     screenVideo.srcObject = stream;
     singleInputCleanup = dragController.addSurface(screenVideo, display);
     screenVideo.onloadedmetadata = () => {
@@ -406,16 +413,28 @@ screenSelect.addEventListener('change', () => {
   }
 });
 
-// FPS & Coords Telemetry Counter (RAF-decoupled)
+// Show decoded video FPS rather than requestAnimationFrame's UI refresh rate.
 function updateTelemetry() {
-  frameCount++;
   const now = performance.now();
-  const elapsed = now - lastFrameTime;
-  if (elapsed >= 1000) {
-    fps = Math.round((frameCount * 1000) / elapsed);
-    fpsDisplay.textContent = `FPS: ${fps}`;
-    frameCount = 0;
-    lastFrameTime = now;
+  if (now - lastTelemetryTime >= 1000) {
+    const videos = viewMode === 'grid'
+      ? gridMode.tiles.map((tile) => tile.video)
+      : [screenVideo];
+    const measured = [];
+    for (const video of videos) {
+      const frames = CaptureSettings.decodedVideoFrames(video);
+      if (frames === null) continue;
+      const previous = videoFpsSamples.get(video);
+      const sample = CaptureSettings.measuredFps(previous, frames, now);
+      if (sample !== null) measured.push(sample);
+      videoFpsSamples.set(video, { frames, at: now });
+    }
+    const average = measured.length
+      ? Math.round(measured.reduce((sum, value) => sum + value, 0) / measured.length)
+      : '--';
+    fpsDisplay.textContent = (viewMode === 'grid' ? 'FPS avg: ' : 'FPS: ')
+      + average + ' / ' + targetFps;
+    lastTelemetryTime = now;
   }
   if (latestCoordText && coordDisplay.textContent !== latestCoordText) {
     coordDisplay.textContent = latestCoordText;

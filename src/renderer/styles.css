@@ -118,6 +118,24 @@ body {
   -webkit-app-region: no-drag;
 }
 
+/* Compact capture-rate control. Native options remain keyboard-accessible. */
+.fps-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--text-muted);
+  font-size: 10px;
+  font-weight: 600;
+  white-space: nowrap;
+  -webkit-app-region: no-drag;
+}
+
+.fps-select {
+  width: 52px;
+  padding: 3px 5px;
+  font-variant-numeric: tabular-nums;
+}
+
 /* Action Buttons */
 .btn {
   background: #1e2230;

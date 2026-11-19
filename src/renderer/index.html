@@ -22,7 +22,16 @@
       </select>
       <button class="btn" id="btnRefresh" title="Refresh connected displays">↻ Refresh</button>
       <button class="btn" id="btnIdentify" title="Show display numbers on every connected monitor for five seconds" aria-label="Identify connected displays">▣ Identify</button>
-      <div class="telemetry" id="fpsDisplay">FPS: --</div>
+      <label class="fps-control" for="fpsSelect" title="Capture frame rate target for Single and Grid modes">
+        <span>FPS</span>
+        <select class="screen-select fps-select" id="fpsSelect" aria-label="Capture FPS target">
+          <option value="15">15</option>
+          <option value="24">24</option>
+          <option value="30">30</option>
+          <option value="60" selected>60</option>
+        </select>
+      </label>
+      <div class="telemetry" id="fpsDisplay" title="Measured decoded video FPS / selected target">FPS: -- / 60</div>
       <div class="telemetry" id="coordDisplay">X: 0 Y: 0</div>
     </div>
 
@@ -54,6 +63,7 @@
   </main>
 
   <script src="./gridMath.js"></script>
+  <script src="./captureSettings.js"></script>
   <script src="./dragController.js"></script>
   <script src="./gridMode.js"></script>
   <script src="./smartHide.js"></script>
