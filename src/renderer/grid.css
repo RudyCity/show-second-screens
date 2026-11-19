@@ -1,0 +1,133 @@
+/* Multi-display grid: each tile keeps its own video and input hit area. */
+.viewport-container.grid-active {
+  align-items: stretch;
+  justify-content: stretch;
+  cursor: default;
+}
+
+.viewport-container.grid-active > #screenVideo,
+.viewport-container.grid-active > #placeholder {
+  display: none !important;
+}
+
+.screen-grid {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  padding: 10px;
+  display: grid;
+  grid-template-columns: repeat(var(--grid-columns, 2), minmax(0, 1fr));
+  grid-auto-rows: minmax(180px, 1fr);
+  gap: 10px;
+  overflow: auto;
+  align-content: stretch;
+}
+
+.screen-grid[hidden] { display: none; }
+
+.grid-tile {
+  border: 1px solid var(--bg-panel-border);
+  border-radius: 8px;
+  overflow: hidden;
+  min-width: 0;
+  min-height: 180px;
+  display: flex;
+  flex-direction: column;
+  background: #0d1018;
+}
+
+.grid-tile-header {
+  height: 34px;
+  flex: 0 0 34px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 8px 0 10px;
+  border-bottom: 1px solid var(--bg-panel-border);
+  background: #161a26;
+}
+
+.grid-tile-name {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-weight: 600;
+  font-size: 11px;
+}
+
+.grid-resolution {
+  margin-left: auto;
+  white-space: nowrap;
+  color: var(--text-muted);
+  font-size: 10px;
+}
+
+.grid-focus {
+  flex-shrink: 0;
+  padding: 3px 7px;
+}
+
+.grid-tile-stage {
+  position: relative;
+  background: #000;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.grid-video {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  cursor: crosshair;
+  transform: translateZ(0);
+  contain: layout paint;
+}
+
+.grid-tile-status {
+  position: absolute;
+  inset: 0;
+  padding: 12px;
+  display: grid;
+  place-items: center;
+  text-align: center;
+  color: var(--text-muted);
+  background: rgba(9, 10, 15, 0.82);
+  pointer-events: none;
+}
+
+.grid-tile-status[hidden] { display: none; }
+
+.grid-empty {
+  grid-column: 1 / -1;
+  align-self: center;
+  justify-self: center;
+  color: var(--text-muted);
+}
+
+#gridColumns[hidden] { display: none; }
+
+@media (max-width: 980px) {
+  .titlebar {
+    height: auto;
+    min-height: var(--header-height);
+    flex-wrap: wrap;
+    gap: 6px;
+    padding-top: 5px;
+    padding-bottom: 5px;
+  }
+  .titlebar-left, .titlebar-right { flex-wrap: wrap; }
+  .telemetry { display: none; }
+}
+
+@media (max-width: 520px) {
+  .brand-dot, .grid-resolution { display: none; }
+  .titlebar-left { gap: 5px; }
+  .titlebar-right { gap: 4px; }
+  .btn { padding: 4px 6px; }
+  .screen-grid { padding: 6px; gap: 6px; }
+}
