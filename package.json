@@ -10,7 +10,7 @@
   "main": "src/main/index.cjs",
   "scripts": {
     "start": "node scripts/start.cjs",
-    "test": "node --test tests/*.test.cjs",
+    "test": "node --test",
     "start:raw": "electron .",
     "build:injector": "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\csc.exe /nologo /optimize /target:winexe /out:bin\\injector.exe src\\main\\input\\injector.cs",
     "prebuild:portable": "npm run build:injector",
