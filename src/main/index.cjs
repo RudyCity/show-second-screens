@@ -1,4 +1,4 @@
-const { app } = require('electron');
+const { app, screen } = require('electron');
 const { WindowManager } = require('./window/windowManager.cjs');
 const { DisplayService } = require('./capture/displayService.cjs');
 const { InputService } = require('./input/inputService.cjs');
@@ -54,6 +54,20 @@ app.whenReady().then(async () => {
   trayManager.init();
 
   const win = windowManager.createWindow();
+
+  // Re-enumerate sources after monitor hot-plug, removal, or resolution changes.
+  let displayUpdateTimer = null;
+  const notifyDisplayChange = () => {
+    clearTimeout(displayUpdateTimer);
+    displayUpdateTimer = setTimeout(() => {
+      const target = windowManager.getWindow();
+      if (target && !target.isDestroyed()) target.webContents.send('display:changed');
+    }, 350);
+  };
+  for (const eventName of ['display-added', 'display-removed', 'display-metrics-changed']) {
+    screen.on(eventName, notifyDisplayChange);
+  }
+  app.once('will-quit', () => clearTimeout(displayUpdateTimer));
 
   if (win) {
     const bounds = win.getBounds();
