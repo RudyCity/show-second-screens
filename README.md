@@ -6,7 +6,7 @@
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 [![Platform: Windows | macOS | Linux](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux-green.svg)](#5--cross-platform-input-architecture)
 [![Electron: v33+](https://img.shields.io/badge/Electron-v33+-47848F.svg)](https://www.electronjs.org/)
-[![Version: 0.3.11](https://img.shields.io/badge/Version-0.3.11-22c55e.svg)](CHANGELOG.md)
+[![Version: 0.4.0](https://img.shields.io/badge/Version-0.4.0-22c55e.svg)](CHANGELOG.md)
 [![CI & Release](https://github.com/RudyCity/show-second-screens/actions/workflows/release.yml/badge.svg)](https://github.com/RudyCity/show-second-screens/actions/workflows/release.yml)
 [![GitHub Release](https://img.shields.io/github/v/release/RudyCity/show-second-screens?color=22c55e)](https://github.com/RudyCity/show-second-screens/releases/latest)
 [![Donate: Ko-fi](https://img.shields.io/badge/Ko--fi-Support%20Creator-FF5E5B?logo=ko-fi&logoColor=white)](https://ko-fi.com/rudycity)
@@ -31,11 +31,18 @@ Working across multiple monitors or virtual displays (*Virtual Display Driver / 
 - **Cursor Stays in Your Hand**: Hovering over the preview window never pulls your physical mouse cursor onto the target display.
 - **Direct Mode Option**: Toggle the toolbar button from `🎯 Tetap di Sini` (Ghost Mode) to `🚀 Pindah Layar` (Direct Mode) whenever you intentionally want your physical cursor to move to the target screen.
 
-### 2. 🖥️ Ultra-Low-Latency 60 FPS Streaming
+### 2. 🗂️ Multi-Monitor Grid Mode (v0.4.0 source)
+- Switch between **Single** and **Grid** in the titlebar to display every capture-ready physical or virtual monitor simultaneously.
+- Choose responsive **Auto / 2 / 3 / 4 columns**. Every tile has an independent video stream and mouse hit area; select **Focus** to switch to single-screen control.
+- Ghost Cursor and Direct Mode mouse input remain available per tile, with accurate physical coordinates across negative monitor origins and letterboxed previews.
+- Refresh or hot-plug a monitor to rebuild the grid; switching modes stops unused capture streams. The selected view and column preference are retained.
+- **Availability:** Grid Mode is implemented on the `main` source branch; prebuilt binaries may still be older until a 0.4.0 release is published.
+
+### 3. 🖥️ Ultra-Low-Latency 60 FPS Streaming
 - Hardware-accelerated screen capture via WebRTC Desktop Media Capture with a zero-copy GPU video compositing pipeline.
 - Zero-reflow coordinate mapping ($O(1)$ cached geometry) and automatic letterbox/pillarbox calculation preserve the target display's exact aspect ratio and 1:1 pixel accuracy across mixed-DPI monitors.
 
-### 3. 📌 System Tray Integration
+### 4. 📌 System Tray Integration
 - Always-visible dynamic tray icon in the Windows Taskbar, macOS Menu Bar, and Linux AppIndicator.
 - **Quick Context Menu**:
   - `Show Window` / `Hide Window`
@@ -45,16 +52,16 @@ Working across multiple monitors or virtual displays (*Virtual Display Driver / 
   - `Quit`
 - Click or double-click the tray icon to toggle preview window visibility instantly.
 
-### 4. 🪟 Smart Multi-Monitor Window Positioning
+### 5. 🪟 Smart Multi-Monitor Window Positioning
 - Automatically detects the monitor under your cursor at startup (`screen.getDisplayNearestPoint`) and centers the window there instead of hiding it off-screen.
 - Supports **Always-on-Top** (*Pin*) and cyclic window transparency (**Opacity: 100% / 85% / 65%**).
 
-### 5. 🔄 Cross-Platform Input Architecture
+### 6. 🔄 Cross-Platform Input Architecture
 - **Windows**: Native Win32 C# daemon (`bin/injector.exe`) using Per-Monitor V2 DPI awareness, `SendInput`, `SetCursorPos`, and `EnumDisplayMonitors`.
 - **macOS**: CoreGraphics / AppleScript / `cliclick` adapter with `hiddenInset` titlebar styling.
 - **Linux**: `xdotool` (X11) and `ydotool` (Wayland) adapter with automatic cursor position restoration.
 
-### 6. 🛡️ Single Instance & Smart Kill Confirmation
+### 7. 🛡️ Single Instance & Smart Kill Confirmation
 - Prevents duplicate background or portable processes from colliding.
 - Prompts with an interactive dialog when another running instance is detected, letting you cleanly terminate existing processes (`Show Second Screens.exe`, portable wrappers, and `injector.exe`) via process-tree cleanup or bring the active window to focus.
 
@@ -87,7 +94,7 @@ We recommend the open-source [**Virtual Display Driver (VDD)**](https://github.c
 ## 📦 Download & Quick Start
 
 ### Option A: Download Pre-Built Binaries (Windows, macOS, Ubuntu)
-Download ready-to-run builds directly from [**GitHub Releases**](https://github.com/RudyCity/show-second-screens/releases/latest) without installing Node.js:
+Download the latest published builds directly from [**GitHub Releases**](https://github.com/RudyCity/show-second-screens/releases/latest) without installing Node.js:
 - **Windows (`x64` Portable)**: `Show-Second-Screens-Portable-0.3.11.exe` (double-click to run immediately, no installation required).
 - **macOS (`arm64` & `x64`)**: `Show-Second-Screens-macOS-0.3.11-<arch>.dmg` or `.zip`.
 - **Ubuntu / Linux (`x64`)**: `Show-Second-Screens-Linux-0.3.11-x86_64.AppImage` or `Show-Second-Screens-Linux-0.3.11-amd64.deb`.
@@ -144,7 +151,11 @@ Output artifacts are placed in `dist/`.
 
 | Control / Action | Description |
 |---|---|
-| **Display Dropdown** | Select the physical or virtual monitor (e.g., VDD screen) to mirror and control. |
+| **Display Dropdown** | Select the physical or virtual monitor (e.g., VDD screen) to mirror and control. Selecting a display in Grid Mode focuses it. |
+| **`▦ Grid` / `▣ Single`** | Toggle a multi-monitor overview with live interactive tiles versus the focused preview. |
+| **Grid Columns** | Choose Auto, 2, 3, or 4 columns; narrow windows automatically reduce the count to keep previews usable. |
+| **Focus (per tile)** | Open a monitor tile in full-window single-screen mode. |
+| **Refresh** | Re-detect available monitors without restarting the app. |
 | **Telemetry Badges (`FPS`, `X/Y`)** | Live stream frame rate and mapped target display coordinates. |
 | **`🎯 Tetap di Sini` / `🚀 Pindah Layar`** | Toggle cursor mode between **Ghost Mode** (cursor stays on main screen) and **Direct Mode** (cursor moves to target screen). |
 | **`📌 Always On Top`** | Pin or unpin the preview window above all other windows. |
@@ -212,6 +223,9 @@ show-second-screens/
 │   ├── renderer/             # Modular UI (Viewport, Styles & Controller)
 │   │   ├── index.html
 │   │   ├── renderer.js
+│   │   ├── gridMode.js
+│   │   ├── gridMath.js
+│   │   ├── grid.css
 │   │   └── styles.css
 │   └── shared/               # Shared types, constants & coordinate math utilities
 │       ├── constants/index.ts
