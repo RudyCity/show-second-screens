@@ -12,6 +12,7 @@ class WindowManager {
     this.mainWindow = null;
     this.donateWindow = null;
     this.isAlwaysOnTop = true;
+    this.hostDisplayTimer = null;
   }
 
   createWindow() {
@@ -66,12 +67,33 @@ class WindowManager {
     const indexPath = path.join(__dirname, '../../renderer/index.html');
     this.mainWindow.loadFile(indexPath);
 
+    // Window movement is tracked by the native main process, not by cursor position.
+    // Notify only when the monitor containing most of the app window changes.
+    let lastHostId = String(activeDisplay.id);
+    const notifyHostChange = () => {
+      const win = this.mainWindow;
+      if (!win || win.isDestroyed()) return;
+      const host = this.getHostDisplay();
+      if (!host || host.id === lastHostId) return;
+      lastHostId = host.id;
+      win.webContents.send('window:host-display-changed', host);
+    };
+    const scheduleHostCheck = () => {
+      clearTimeout(this.hostDisplayTimer);
+      this.hostDisplayTimer = setTimeout(notifyHostChange, 90);
+    };
+    for (const name of ['move', 'resize', 'maximize', 'unmaximize', 'restore']) {
+      this.mainWindow.on(name, scheduleHostCheck);
+    }
+
     this.mainWindow.show();
     this.mainWindow.focus();
     this.mainWindow.moveTop();
     this.mainWindow.setAlwaysOnTop(this.isAlwaysOnTop, isMac ? 'floating' : 'screen-saver');
 
     this.mainWindow.on('closed', () => {
+      clearTimeout(this.hostDisplayTimer);
+      this.hostDisplayTimer = null;
       this.mainWindow = null;
     });
 
@@ -95,6 +117,20 @@ class WindowManager {
 
   getWindow() {
     return this.mainWindow;
+  }
+
+  getHostDisplay() {
+    if (!this.mainWindow || this.mainWindow.isDestroyed()) return null;
+    const display = screen.getDisplayMatching(this.mainWindow.getBounds());
+    if (!display) return null;
+    // Expose only the local display identity and geometry, never window contents.
+    const bounds = process.platform === 'win32' && typeof screen.dipToScreenRect === 'function'
+      ? screen.dipToScreenRect(null, display.bounds)
+      : display.bounds;
+    return {
+      id: String(display.id),
+      physicalBounds: bounds
+    };
   }
 
   setAlwaysOnTop(isAlwaysOnTop) {
