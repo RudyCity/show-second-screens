@@ -38,7 +38,7 @@ class WindowManager {
       height: winHeight,
       minWidth: 420,
       minHeight: 280,
-      show: true,
+      show: false,
       icon: iconPath || windowIcon,
       frame: true,
       titleBarStyle: isMac ? 'hiddenInset' : 'default',
@@ -66,6 +66,10 @@ class WindowManager {
 
     const indexPath = path.join(__dirname, '../../renderer/index.html');
     this.mainWindow.loadFile(indexPath);
+
+    // Maximize before the initial show so users never see a smaller window flash.
+    // The native maximize button still restores the window to its original size.
+    this.mainWindow.maximize();
 
     // Window movement is tracked by the native main process, not by cursor position.
     // Notify only when the monitor containing most of the app window changes.

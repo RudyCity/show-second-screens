@@ -1,4 +1,4 @@
-const { Tray, Menu, app, shell } = require('electron');
+const { Tray, Menu, app, shell, Notification } = require('electron');
 const { IconResolver } = require('../window/iconResolver.cjs');
 
 /**
@@ -8,6 +8,8 @@ class TrayManager {
   constructor(windowManager) {
     this.windowManager = windowManager;
     this.tray = null;
+    this.startupNotificationSent = false;
+    this.startupNotification = null;
   }
 
   init() {
@@ -27,9 +29,59 @@ class TrayManager {
       this.tray.on('double-click', () => {
         this.toggleWindow();
       });
+
+      // Windows tray balloon clicks should always reveal the app, never hide it.
+      this.tray.on('balloon-click', () => this.showWindow());
     } catch (err) {
       console.error('[TrayManager] Error initializing system tray:', err);
     }
+  }
+
+  /**
+   * Inform the user that the app remains accessible from the system tray.
+   * Invoked once after the first main window has been created.
+   */
+  notifyRunning() {
+    if (!this.tray || this.startupNotificationSent) return false;
+
+    const title = 'Show Second Screens is running';
+    const content = 'The app is also running in the system tray. Right-click the tray icon to show the window or quit.';
+
+    try {
+      if (process.platform === 'win32' && typeof this.tray.displayBalloon === 'function') {
+        this.tray.displayBalloon({ title, content, iconType: 'info', noSound: true });
+        this.startupNotificationSent = true;
+        return true;
+      }
+
+      if (Notification && Notification.isSupported()) {
+        const notification = new Notification({ title, body: content, silent: true });
+        notification.on('click', () => this.showWindow());
+        notification.once('close', () => {
+          if (this.startupNotification === notification) this.startupNotification = null;
+        });
+        this.startupNotification = notification;
+        notification.show();
+        this.startupNotificationSent = true;
+        return true;
+      }
+    } catch (error) {
+      console.warn('[TrayManager] Could not display startup notification:', error);
+    }
+
+    return false;
+  }
+
+  showWindow() {
+    const win = this.windowManager.getWindow();
+    if (!win || win.isDestroyed()) {
+      this.windowManager.createWindow();
+    } else {
+      if (win.isMinimized()) win.restore();
+      win.show();
+      win.focus();
+    }
+    this.updateContextMenu();
   }
 
   toggleWindow() {
@@ -104,6 +156,10 @@ class TrayManager {
   }
 
   destroy() {
+    if (this.startupNotification) {
+      this.startupNotification.close();
+      this.startupNotification = null;
+    }
     if (this.tray) {
       this.tray.destroy();
       this.tray = null;

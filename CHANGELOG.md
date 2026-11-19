@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.6.1] - 2026-11-19
+
+### Changed
+- The main preview window now launches maximized on the display closest to the cursor, with the native Restore button returning to its former floating size.
+- The system tray now announces application startup once, using a Windows tray balloon or a macOS/Linux native notification when supported. Clicking the notification brings the window forward.
+- Added cross-platform regression tests for startup window state and tray notification behavior.
+
+---
+
 ## [0.6.0] - 2026-11-19
 
 ### Added

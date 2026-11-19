@@ -54,6 +54,7 @@ app.whenReady().then(async () => {
   trayManager.init();
 
   const win = windowManager.createWindow();
+  if (win) trayManager.notifyRunning();
 
   // Re-enumerate sources after monitor hot-plug, removal, or resolution changes.
   let displayUpdateTimer = null;
