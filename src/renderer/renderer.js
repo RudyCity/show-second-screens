@@ -100,7 +100,13 @@ function setViewMode(mode) {
     const target = SmartHide.pickSingleDisplay(eligible, preferredSingleId, screenSelect.value);
     if (target) {
       screenSelect.value = target.id;
-      if (!activeDisplay || activeDisplay.id !== target.id || !currentStream) switchDisplay(target);
+      // A monitor can keep the same ID after a resolution or source change.
+      const staleCapture = !activeDisplay || activeDisplay.id !== target.id
+        || activeDisplay.sourceId !== target.sourceId
+        || activeDisplay.bounds.width !== target.bounds.width
+        || activeDisplay.bounds.height !== target.bounds.height
+        || !currentStream;
+      if (staleCapture) switchDisplay(target);
     } else {
       stopSingleCapture();
       placeholder.style.display = 'flex';
