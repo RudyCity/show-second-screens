@@ -80,6 +80,7 @@ const dragController = new DragController({
   replayDrag: nativeReplayAvailable
     ? (payload) => window.electronAPI.replayNativeDrag(payload)
     : undefined,
+  onReplayStart: () => showDropFeedback('Applying drag to the target screen…'),
   onReplayResult: (result) => showDropFeedback(result && result.message
     ? result.message : 'Native drag replay did not return a result.'),
   onCoordinates: (text) => { latestCoordText = text; },

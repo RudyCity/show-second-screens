@@ -16,6 +16,7 @@ function harness() {
   const overlays = [];
   const sent = [];
   const replayed = [];
+  const replayStarts = [];
   const results = [];
   const context = {
     window: root,
@@ -46,6 +47,7 @@ function harness() {
       return { ok: true, message: 'Native drag input replay completed.' };
     },
     onReplayResult: (result) => results.push(result),
+    onReplayStart: () => replayStarts.push(true),
     onPointer: (point) => overlays.push(point ? { ...point } : null)
   });
   const left = new Video(0);
@@ -56,7 +58,7 @@ function harness() {
   controller.addSurface(right, {
     id: 'B', name: 'Display 2', bounds: { x: 1920, y: 0, width: 1920, height: 1080 }
   });
-  return { root, controller, left, right, overlays, sent, replayed, results };
+  return { root, controller, left, right, overlays, sent, replayed, replayStarts, results };
 }
 
 function pointer(x, y = 270) {
@@ -78,6 +80,7 @@ test('duplicate cursor follows remote coordinates, while native drag starts afte
   h.root.emit('mouseup', pointer(1500));
   await tick();
   assert.equal(h.replayed.length, 1);
+  assert.equal(h.replayStarts.length, 1);
   assert.equal(h.replayed[0].points[0].x, 400);
   assert.equal(h.replayed[0].points.at(-1).x, 3000);
   assert.equal(h.replayed[0].ctrl, false);
@@ -94,6 +97,7 @@ test('Escape and window blur discard recorded drag without native replay', async
   h.root.emit('mouseup', pointer(350));
   await tick();
   assert.equal(h.replayed.length, 0);
+  assert.equal(h.replayStarts.length, 0);
   assert.equal(h.overlays.at(-1), null);
   h.left.emit('mousedown', pointer(200));
   h.root.emit('mousemove', pointer(380));

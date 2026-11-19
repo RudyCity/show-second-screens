@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.9.1] - 2026-11-19
+
+### Improved
+- Reduced Windows native drag replay delay: fixed settling sleeps have been shortened, replay points are bounded to 64 sampled waypoints and 160 interpolated steps, and each step uses a shorter wait with scoped 1 ms Windows timer resolution.
+- Kept mouse-release, modifier, and original cursor restoration safety paths intact.
+- The HUD now immediately shows "Applying drag" when replay starts, then displays the native helper's measured elapsed milliseconds. This measures injected mouse replay, not asynchronous target-app file transfer completion.
+
+### Tests
+- Added explicit regression checks for the programmed native drag delay budget, timing acknowledgments, and replay-start feedback. Native build and physical Windows drag/drop validation remain separate gates.
+
+---
+
 ## [0.9.0] - 2026-11-19
 
 ### Added

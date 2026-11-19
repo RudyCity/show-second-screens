@@ -364,6 +364,7 @@ namespace ShowSecondScreens.Input
                         if (parts.Length >= 5)
                         {
                             bool sent = false;
+                            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
                             try
                             {
                                 sent = NativeDragReplay.Replay(parts[2],
@@ -373,7 +374,9 @@ namespace ShowSecondScreens.Input
                             {
                                 Console.Error.WriteLine("[NativeDragReplay] " + error.Message);
                             }
-                            Console.WriteLine("REPLAY_RESULT " + parts[1] + " " + (sent ? "ok" : "failed"));
+                            stopwatch.Stop();
+                            Console.WriteLine("REPLAY_RESULT " + parts[1] + " "
+                                + (sent ? "ok" : "failed") + " " + stopwatch.ElapsedMilliseconds);
                             Console.Out.Flush();
                         }
                         break;

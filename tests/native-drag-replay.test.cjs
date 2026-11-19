@@ -47,10 +47,11 @@ test('recorded native drag is sent as one serialized command and acknowledged', 
   assert.equal(Buffer.from(pieces[2], 'base64').toString('utf8'), '-400,120;180,500;1200,900');
   assert.deepEqual(pieces.slice(3), ['1', '0']);
   assert.equal((await h.adapter.replayNativeDrag(path)).ok, false, 'parallel replay rejected');
-  h.child.stdout.emit('data', Buffer.from('REPLAY_RESULT ' + pieces[1] + ' ok\n'));
+  h.child.stdout.emit('data', Buffer.from('REPLAY_RESULT ' + pieces[1] + ' ok 238\n'));
   const outcome = await pending;
   assert.equal(outcome.ok, true);
-  assert.match(outcome.message, /Confirm the result/);
+  assert.equal(outcome.durationMs, 238);
+  assert.match(outcome.message, /238 ms/);
   h.adapter.dispose();
 });
 
@@ -58,9 +59,10 @@ test('native helper error acknowledgment returns failure, not success', async ()
   const h = harness();
   const pending = h.adapter.replayNativeDrag([{ x: 5, y: 10 }, { x: 120, y: 300 }]);
   const id = h.commands[0].split(' ')[1];
-  h.child.stdout.emit('data', Buffer.from('REPLAY_RESULT ' + id + ' failed\n'));
+  h.child.stdout.emit('data', Buffer.from('REPLAY_RESULT ' + id + ' failed 73\n'));
   const result = await pending;
   assert.equal(result.ok, false);
+  assert.equal(result.durationMs, 73);
   h.adapter.dispose();
 });
 
@@ -82,4 +84,34 @@ test('Windows build includes native drag replay and restores the OS pointer', ()
   assert.match(nativeSource, /MOUSEEVENTF_LEFTUP/);
   assert.match(nativeSource, /finally[\s\S]*MoveTo\(origin/);
   assert.match(nativeSource, /GetSystemMetrics\(SM_XVIRTUALSCREEN\)/);
+});
+
+test('native replay uses a short, bounded sleep budget without dropping cursor restoration', () => {
+  const nativeSource = fs.readFileSync(path.join(__dirname, '../src/main/input/nativeDragReplay.cs'), 'utf8');
+  const pick = (name) => {
+    const match = nativeSource.match(new RegExp('private const int ' + name + ' = ([0-9]+);'));
+    assert.ok(match, 'native timing constant missing: ' + name);
+    return Number(match[1]);
+  };
+  const maxSteps = pick('MAX_STEPS');
+  const fixed = pick('CURSOR_SETTLE_MS') + pick('BUTTON_DOWN_SETTLE_MS')
+    + pick('DROP_SETTLE_MS') + pick('RELEASE_SETTLE_MS');
+  const programmedWait = fixed + maxSteps * pick('MOVE_STEP_MS');
+  assert.ok(programmedWait < 550, 'total programmed waits should remain bounded under 550 ms');
+  assert.match(nativeSource, /CompactPath\(points\)/);
+  assert.match(nativeSource, /timeBeginPeriod\(1\)/);
+  assert.match(nativeSource, /if \(highResolutionTimer\) timeEndPeriod\(1\)/);
+  assert.doesNotMatch(nativeSource, /Thread\.Sleep\((55|90|110|80|9)\)/);
+  assert.match(nativeSource, /finally[\s\S]*MoveTo\(origin/);
+});
+
+test('legacy injector acknowledgment without timing remains compatible', async () => {
+  const h = harness();
+  const pending = h.adapter.replayNativeDrag([{ x: 10, y: 20 }, { x: 100, y: 200 }]);
+  const id = h.commands[0].split(' ')[1];
+  h.child.stdout.emit('data', Buffer.from('REPLAY_RESULT ' + id + ' ok\n'));
+  const result = await pending;
+  assert.equal(result.ok, true);
+  assert.equal(result.durationMs, null);
+  h.adapter.dispose();
 });

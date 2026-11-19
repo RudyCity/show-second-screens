@@ -86,15 +86,26 @@ class WindowsAdapter extends BaseAdapter {
     while (separator >= 0) {
       const line = this.outputBuffer.slice(0, separator).trim();
       this.outputBuffer = this.outputBuffer.slice(separator + 1);
-      const match = /^REPLAY_RESULT ([0-9]+) (ok|failed)$/.exec(line);
+      const match = /^REPLAY_RESULT ([0-9]+) (ok|failed)(?: ([0-9]+))?$/.exec(line);
       if (match) {
         const pending = this.pendingReplay.get(match[1]);
         if (pending) {
           this.pendingReplay.delete(match[1]);
           clearTimeout(pending.timer);
+          const durationMs = match[3] === undefined ? null : Number(match[3]);
           pending.resolve(match[2] === 'ok'
-            ? { ok: true, message: 'Native drag input replay completed. Confirm the result in the target application.' }
-            : { ok: false, message: 'Windows could not inject the native drag. Check desktop permissions and target application.' });
+            ? {
+              ok: true,
+              durationMs,
+              message: durationMs === null
+                ? 'Native drag input replay completed. Confirm the result in the target application.'
+                : 'Drag input replay: ' + durationMs + ' ms. Confirm the drop in the target application.'
+            }
+            : {
+              ok: false,
+              durationMs,
+              message: 'Windows could not inject the native drag. Check desktop permissions and target application.'
+            });
         }
       }
       separator = this.outputBuffer.indexOf('\n');

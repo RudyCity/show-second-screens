@@ -6,7 +6,7 @@
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 [![Platform: Windows | macOS | Linux](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux-green.svg)](#5--cross-platform-input-architecture)
 [![Electron: v33+](https://img.shields.io/badge/Electron-v33+-47848F.svg)](https://www.electronjs.org/)
-[![Version: 0.9.0](https://img.shields.io/badge/Version-0.9.0-22c55e.svg)](CHANGELOG.md)
+[![Version: 0.9.1](https://img.shields.io/badge/Version-0.9.1-22c55e.svg)](CHANGELOG.md)
 [![CI & Release](https://github.com/RudyCity/show-second-screens/actions/workflows/release.yml/badge.svg)](https://github.com/RudyCity/show-second-screens/actions/workflows/release.yml)
 [![GitHub Release](https://img.shields.io/github/v/release/RudyCity/show-second-screens?color=22c55e)](https://github.com/RudyCity/show-second-screens/releases/latest)
 [![Donate: Ko-fi](https://img.shields.io/badge/Ko--fi-Support%20Creator-FF5E5B?logo=ko-fi&logoColor=white)](https://ko-fi.com/rudycity)
@@ -26,7 +26,7 @@ Working across multiple monitors or virtual displays (*Virtual Display Driver / 
 
 ## 🚀 Key Features
 
-### 1. 🎯 Ghost Mode and Duplicate Target Cursor (v0.9.0)
+### 1. 🎯 Ghost Mode and Duplicate Target Cursor (v0.9.1)
 - **No cursor-mode switch.** As the host mouse moves within a preview, a click-through duplicate arrow follows the matching position on the target monitor. The host pointer remains available in the preview during this gesture.
 - **Windows drag replay:** drag an app titlebar, icon, or selected file in a preview and release over a destination. The app records the mapped screen coordinates, then replays a genuine native left-button drag via Win32 `SendInput`. Unlike the v0.8.0 titlebar-only/Explorer-only handler, this can reach normal Windows drag-and-drop handlers, including OLE, where permitted.
 - **Windows has one real OS cursor.** Only the duplicate cursor is virtual. During replay (after the host button is released), the native pointer *temporarily* travels to the target and returns; this cannot be made strictly cursor-independent without more specialized input architecture.
@@ -45,8 +45,8 @@ Working across multiple monitors or virtual displays (*Virtual Display Driver / 
 - Refresh or hot-plug a monitor to rebuild the grid; switching modes stops unused capture streams. The selected view and column preference are retained.
 - Grid and Smart Hide are included in published releases starting with v0.5.0.
 
-### 4. 🖱️ Cross-Monitor Drag & Drop (v0.9.0)
-- **Within remote previews (Windows):** keep the left mouse button down, move the duplicate cursor across one or multiple Grid tiles, and release over the target. The input service validates the path, then replays down/move/up through the native Windows mouse input queue. You may briefly see the OS cursor move on replay.
+### 4. 🖱️ Cross-Monitor Drag & Drop (v0.9.1)
+- **Within remote previews (Windows):** keep the left mouse button down, move the duplicate cursor across one or multiple Grid tiles, and release over the target. The input service validates the path, then replays down/move/up through the native Windows mouse input queue. You may briefly see the OS cursor move on replay. **v0.9.1** reduces replay latency with bounded path sampling, shorter native event delays, and a temporary high-resolution Windows timer. A HUD reports when the drop is applying and the measured replay duration (not a guarantee of OLE transfer completion).
 - **Window dragging and native Windows file drag:** native replay aims to trigger ordinary application drag handlers and Explorer OLE file drops. Ctrl and Shift modifiers are replayed. Success depends on the source app, destination app, permission elevation, and Windows drag policy; native input acknowledgment does **not** prove a file was actually transferred.
 - **Explicit Explorer transfer fallback:** dropping host files onto an Explorer folder shown in a preview still uses the v0.8.0 file operation with confirmation. It does not overwrite existing files.
 - **Cancel:** Esc, loss of preview focus, or switching modes discards the recorded drag before replay. A bounded point history, serialized helper acknowledgments, and input timeouts prevent overlapping native drags.
@@ -118,9 +118,9 @@ We recommend the open-source [**Virtual Display Driver (VDD)**](https://github.c
 
 ### Option A: Download Pre-Built Binaries (Windows, macOS, Ubuntu)
 Download the latest published builds directly from [**GitHub Releases**](https://github.com/RudyCity/show-second-screens/releases/latest) without installing Node.js:
-- **Windows (`x64` Portable)**: `Show-Second-Screens-Portable-0.9.0.exe` (double-click to run immediately, no installation required).
-- **macOS (`arm64` & `x64`)**: `Show-Second-Screens-macOS-0.9.0-<arch>.dmg` or `.zip`.
-- **Ubuntu / Linux (`x64`)**: `Show-Second-Screens-Linux-0.9.0-x86_64.AppImage` or `Show-Second-Screens-Linux-0.9.0-amd64.deb`.
+- **Windows (`x64` Portable)**: `Show-Second-Screens-Portable-0.9.1.exe` (double-click to run immediately, no installation required).
+- **macOS (`arm64` & `x64`)**: `Show-Second-Screens-macOS-0.9.1-<arch>.dmg` or `.zip`.
+- **Ubuntu / Linux (`x64`)**: `Show-Second-Screens-Linux-0.9.1-x86_64.AppImage` or `Show-Second-Screens-Linux-0.9.1-amd64.deb`.
 
 ---
 

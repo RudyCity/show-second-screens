@@ -31,7 +31,16 @@ namespace ShowSecondScreens.Input
         private const int SM_CXVIRTUALSCREEN = 78;
         private const int SM_CYVIRTUALSCREEN = 79;
         private const int MAX_POINTS = 192;
-        private const int MAX_STEPS = 420;
+        // Cap native replay cost: a long gesture should never trigger hundreds
+        // of timer-dependent sleeps on the Windows UI input queue.
+        private const int MAX_STEPS = 160;
+        private const int MAX_REPLAY_POINTS = 64;
+        private const double PIXELS_PER_STEP = 72.0;
+        private const int CURSOR_SETTLE_MS = 15;
+        private const int BUTTON_DOWN_SETTLE_MS = 40;
+        private const int MOVE_STEP_MS = 2;
+        private const int DROP_SETTLE_MS = 45;
+        private const int RELEASE_SETTLE_MS = 12;
 
         [StructLayout(LayoutKind.Sequential)]
         private struct POINT { public int X; public int Y; }
@@ -79,6 +88,10 @@ namespace ShowSecondScreens.Input
         private static extern int GetSystemMetrics(int index);
         [DllImport("user32.dll")]
         private static extern short GetAsyncKeyState(int key);
+        [DllImport("winmm.dll")]
+        private static extern uint timeBeginPeriod(uint period);
+        [DllImport("winmm.dll")]
+        private static extern uint timeEndPeriod(uint period);
 
         private static bool Mouse(uint flag, int dx = 0, int dy = 0)
         {
@@ -142,6 +155,25 @@ namespace ShowSecondScreens.Input
             return points;
         }
 
+        // Subsample the recorded cursor path uniformly in time. Preserve both
+        // endpoints and every section of long gestures while bounding replay
+        // input count. The renderer continues to show all live cursor moves.
+        private static List<POINT> CompactPath(List<POINT> points)
+        {
+            if (points.Count <= MAX_REPLAY_POINTS) return points;
+            var compact = new List<POINT>(MAX_REPLAY_POINTS);
+            for (int i = 0; i < MAX_REPLAY_POINTS; i++)
+            {
+                int index = (int)Math.Round((double)i * (points.Count - 1)
+                    / (MAX_REPLAY_POINTS - 1));
+                var next = points[index];
+                if (compact.Count == 0 || compact[compact.Count - 1].X != next.X
+                    || compact[compact.Count - 1].Y != next.Y)
+                    compact.Add(next);
+            }
+            return compact;
+        }
+
         public static bool Replay(string base64, bool ctrl, bool shift)
         {
             List<POINT> points;
@@ -162,6 +194,7 @@ namespace ShowSecondScreens.Input
                 if (point.X < left || point.X >= left + width
                     || point.Y < top || point.Y >= top + height) return false;
             }
+            points = CompactPath(points);
             var a = points[0];
             var b = points[points.Count - 1];
             if (Math.Abs((long)a.X - b.X) + Math.Abs((long)a.Y - b.Y) < 5)
@@ -172,10 +205,21 @@ namespace ShowSecondScreens.Input
             bool mouseDown = false;
             bool synthesizedCtrl = false, synthesizedShift = false;
             bool ok = true;
+            // Thread.Sleep(2) may last ~15 ms on Windows at default resolution.
+            // Request 1-ms resolution only while the helper replays a drag.
+            bool highResolutionTimer = false;
+            try
+            {
+                highResolutionTimer = timeBeginPeriod(1) == 0;
+            }
+            catch (DllNotFoundException)
+            {
+                // Fall back to the system timer if winmm is unavailable.
+            }
             try
             {
                 if (!MoveTo(a, left, top, width, height)) return false;
-                Thread.Sleep(55);
+                Thread.Sleep(CURSOR_SETTLE_MS);
 
                 if (ctrl && (GetAsyncKeyState(VK_CONTROL) & 0x8000) == 0)
                 {
@@ -190,7 +234,7 @@ namespace ShowSecondScreens.Input
 
                 if (!Mouse(MOUSEEVENTF_LEFTDOWN)) return false;
                 mouseDown = true;
-                Thread.Sleep(90); // Allow Explorer/OLE and titlebar hit testing to start.
+                Thread.Sleep(BUTTON_DOWN_SETTLE_MS); // Let the source register button-down before the first move.
 
                 int totalSteps = 0;
                 POINT previous = a;
@@ -200,7 +244,7 @@ namespace ShowSecondScreens.Input
                     double distance = Math.Sqrt(
                         Math.Pow((double)next.X - previous.X, 2)
                         + Math.Pow((double)next.Y - previous.Y, 2));
-                    int steps = Math.Max(1, (int)Math.Ceiling(distance / 28.0));
+                    int steps = Math.Max(1, (int)Math.Ceiling(distance / PIXELS_PER_STEP));
                     steps = Math.Min(steps, MAX_STEPS - totalSteps);
                     if (steps <= 0) break;
 
@@ -212,7 +256,7 @@ namespace ShowSecondScreens.Input
                             Y = (int)Math.Round(previous.Y + ((double)next.Y - previous.Y) * step / steps)
                         };
                         if (!MoveTo(position, left, top, width, height)) { ok = false; break; }
-                        Thread.Sleep(9);
+                        Thread.Sleep(MOVE_STEP_MS);
                     }
                     totalSteps += steps;
                     if (!ok || totalSteps >= MAX_STEPS) break;
@@ -221,10 +265,10 @@ namespace ShowSecondScreens.Input
 
                 // Always reach the precise final destination, even if throttled.
                 if (!MoveTo(b, left, top, width, height)) ok = false;
-                Thread.Sleep(110); // Let registered OLE drop targets process drag-over.
+                Thread.Sleep(DROP_SETTLE_MS); // Give target windows a short drag-over processing window.
                 if (!Mouse(MOUSEEVENTF_LEFTUP)) ok = false;
                 mouseDown = false;
-                Thread.Sleep(80);
+                Thread.Sleep(RELEASE_SETTLE_MS);
                 return ok;
             }
             catch (Exception error)
@@ -240,6 +284,7 @@ namespace ShowSecondScreens.Input
                 // This is one temporary system cursor during the replay,
                 // not a truly independent second Windows OS pointer.
                 MoveTo(origin, left, top, width, height);
+                if (highResolutionTimer) timeEndPeriod(1);
             }
         }
     }

@@ -12,6 +12,7 @@
       this.onPointer = options.onPointer || (() => {});
       this.replayDrag = typeof options.replayDrag === 'function' ? options.replayDrag : null;
       this.onReplayResult = options.onReplayResult || (() => {});
+      this.onReplayStart = options.onReplayStart || (() => {});
       this.mapPoint = options.mapPoint || root.GridMath.mapPreviewPoint;
       this.surfaces = new Map();
       this.session = null;
@@ -263,8 +264,10 @@
               ctrl: !!finalEvent.ctrlKey,
               shift: !!finalEvent.shiftKey
             };
-            Promise.resolve().then(() => this.replayDrag(payload))
-              .then((result) => this.onReplayResult(result))
+            Promise.resolve().then(() => {
+              this.onReplayStart();
+              return this.replayDrag(payload);
+            }).then((result) => this.onReplayResult(result))
               .catch((error) => this.onReplayResult({
                 ok: false, message: 'Native drag replay failed: ' + error.message
               }));
