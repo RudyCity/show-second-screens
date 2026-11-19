@@ -4,6 +4,8 @@ let activeDisplay = null;
 let currentStream = null;
 let singleCaptureGeneration = 0;
 let displayLoadGeneration = 0;
+let hostDisplay = null;
+let preferredSingleId = null;
 let isAlwaysOnTop = true;
 let cursorMode = 'ghost'; // 'ghost' = cursor stays 100% on current desktop! 'direct' = cursor moves to target display
 let opacityLevels = [1.0, 0.85, 0.65];
@@ -28,6 +30,11 @@ const btnOpacity = document.getElementById('btnOpacity');
 const btnGrid = document.getElementById('btnGrid');
 const gridColumnsSelect = document.getElementById('gridColumns');
 const btnRefresh = document.getElementById('btnRefresh');
+const btnSmartHide = document.getElementById('btnSmartHide');
+let smartHideEnabled = localStorage.getItem('show-screen:smart-hide') !== 'off';
+btnSmartHide.classList.toggle('active', smartHideEnabled);
+btnSmartHide.setAttribute('aria-pressed', String(smartHideEnabled));
+btnSmartHide.textContent = smartHideEnabled ? '◉ Smart Hide' : '○ Smart Hide';
 const savedGridColumns = localStorage.getItem('show-screen:grid-columns') || 'auto';
 const initialViewMode = localStorage.getItem('show-screen:view-mode') === 'grid' ? 'grid' : 'single';
 let viewMode = 'single';
@@ -42,7 +49,10 @@ const gridMode = new GridMode({
   sendInput: (event) => window.electronAPI.sendInput(event),
   getCursorMode: () => cursorMode,
   onCoordinates: (text) => { latestCoordText = text; },
-  onFocus: (display) => setViewMode('single', display),
+  onFocus: (display) => {
+    preferredSingleId = display.id;
+    setViewMode('single');
+  },
 });
 
 function stopSingleCapture() {
@@ -73,20 +83,30 @@ function stopSingleCapture() {
   cachedGeo.valid = false;
 }
 
-function setViewMode(mode, display) {
+function setViewMode(mode) {
+  const eligible = SmartHide.availableDisplays(currentDisplays, hostDisplay, smartHideEnabled);
   if (mode === 'grid') {
     stopSingleCapture();
     viewMode = 'grid';
     viewportContainer.classList.add('grid-active');
-    gridMode.start(currentDisplays);
+    const excluded = currentDisplays.length > eligible.length;
+    gridMode.start(eligible, excluded
+      ? 'Smart Hide is active. Move this window to another monitor or turn Smart Hide off.'
+      : undefined);
   } else {
     gridMode.stop();
     viewMode = 'single';
     viewportContainer.classList.remove('grid-active');
-    const target = display || currentDisplays.find((d) => d.id === screenSelect.value);
+    const target = SmartHide.pickSingleDisplay(eligible, preferredSingleId, screenSelect.value);
     if (target) {
       screenSelect.value = target.id;
-      switchDisplay(target);
+      if (!activeDisplay || activeDisplay.id !== target.id || !currentStream) switchDisplay(target);
+    } else {
+      stopSingleCapture();
+      placeholder.style.display = 'flex';
+      placeholderText.textContent = smartHideEnabled && currentDisplays.length
+        ? 'Smart Hide: the local screen is paused. Move the app to another monitor or turn Smart Hide off.'
+        : 'No available monitors to capture.';
     }
   }
   btnGrid.classList.toggle('active', viewMode === 'grid');
@@ -94,6 +114,28 @@ function setViewMode(mode, display) {
   btnGrid.textContent = viewMode === 'grid' ? '▣ Single' : '▦ Grid';
   gridColumnsSelect.hidden = viewMode !== 'grid';
   localStorage.setItem('show-screen:view-mode', viewMode);
+}
+
+function applyHostDisplay(host) {
+  if (!host || !host.id) return;
+  if (hostDisplay && hostDisplay.id === host.id) return;
+  hostDisplay = host;
+  if (smartHideEnabled && !firstDisplayLoad && currentDisplays.length) {
+    setViewMode(viewMode);
+  }
+}
+
+btnSmartHide.addEventListener('click', () => {
+  smartHideEnabled = !smartHideEnabled;
+  localStorage.setItem('show-screen:smart-hide', smartHideEnabled ? 'on' : 'off');
+  btnSmartHide.classList.toggle('active', smartHideEnabled);
+  btnSmartHide.setAttribute('aria-pressed', String(smartHideEnabled));
+  btnSmartHide.textContent = smartHideEnabled ? '◉ Smart Hide' : '○ Smart Hide';
+  setViewMode(viewMode);
+});
+
+if (typeof window.electronAPI.onHostDisplayChanged === 'function') {
+  window.electronAPI.onHostDisplayChanged(applyHostDisplay);
 }
 
 btnGrid.addEventListener('click', () => {
@@ -543,7 +585,9 @@ async function loadDisplays() {
   const selectedId = screenSelect.value;
   try {
     const displays = await window.electronAPI.getDisplays();
+    const host = await window.electronAPI.getHostDisplay();
     if (requestId !== displayLoadGeneration) return;
+    hostDisplay = host || hostDisplay;
     currentDisplays = displays || [];
     screenSelect.replaceChildren();
 
@@ -568,11 +612,15 @@ async function loadDisplays() {
     });
 
     const secondary = currentDisplays.find((d) => !d.isPrimary);
-    const target = currentDisplays.find((d) => d.id === selectedId) || secondary || currentDisplays[0];
+    const target = currentDisplays.find((d) => d.id === preferredSingleId)
+      || currentDisplays.find((d) => d.id === selectedId) || secondary || currentDisplays[0];
+    if (!preferredSingleId || !currentDisplays.some((d) => d.id === preferredSingleId)) {
+      preferredSingleId = target.id;
+    }
     screenSelect.value = target.id;
     const desiredMode = firstDisplayLoad ? initialViewMode : viewMode;
     firstDisplayLoad = false;
-    setViewMode(desiredMode, target);
+    setViewMode(desiredMode);
   } catch (err) {
     if (requestId !== displayLoadGeneration) return;
     console.error('Error loading displays:', err);
@@ -585,7 +633,10 @@ async function loadDisplays() {
 
 screenSelect.addEventListener('change', () => {
   const selected = currentDisplays.find((d) => d.id === screenSelect.value);
-  if (selected) setViewMode('single', selected);
+  if (selected) {
+    preferredSingleId = selected.id;
+    setViewMode('single');
+  }
 });
 
 // FPS & Coords Telemetry Counter (RAF-decoupled)
