@@ -96,6 +96,11 @@ async function renderWith(host, displays) {
     performance: { now: () => 0 },
     ResizeObserver: class { observe() {} },
     GridMode: gridMode,
+    // Smart Hide tests mock input; drag integration is tested independently.
+    DragController: class {
+      addSurface() { return () => {}; }
+      dispose() {}
+    },
     SmartHide,
     requestAnimationFrame() {},
     setTimeout: () => 1,
