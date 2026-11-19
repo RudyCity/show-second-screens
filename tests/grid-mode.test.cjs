@@ -31,3 +31,120 @@ test('chooses a responsive column count and respects manual preferences', () => 
   assert.equal(gridColumns(4, 450, '4'), 1);
   assert.equal(gridColumns(0, 900, 'auto'), 1);
 });
+
+
+const fs = require('node:fs');
+const vm = require('node:vm');
+const path = require('node:path');
+
+class MockElement {
+  constructor(tagName) {
+    this.tagName = tagName;
+    this.children = [];
+    this.listeners = new Map();
+    this.clientWidth = 1200;
+    this.hidden = false;
+    this.videoWidth = 1920;
+    this.videoHeight = 1080;
+    this.style = { setProperty: (key, value) => { this.columns = { key, value }; } };
+  }
+  append(...items) { this.children.push(...items); }
+  appendChild(item) { this.children.push(item); }
+  replaceChildren(...items) { this.children = [...items]; }
+  setAttribute(key, value) { this[key] = value; }
+  addEventListener(key, callback) { this.listeners.set(key, callback); }
+  removeEventListener(key) { this.listeners.delete(key); }
+  getBoundingClientRect() { return { left: 0, top: 0, width: 960, height: 540 }; }
+  play() { return Promise.resolve(); }
+  emit(key, e) { if (this.listeners.has(key)) this.listeners.get(key)(e); }
+}
+
+function createHarness(getUserMedia) {
+  const root = { GridMath: require('../src/renderer/gridMath.js'),
+    addEventListener() {}, removeEventListener() {} };
+  const context = {
+    window: root,
+    document: { createElement: (tag) => new MockElement(tag) },
+    navigator: { mediaDevices: { getUserMedia } },
+    ResizeObserver: class { observe() {} disconnect() {} },
+    requestAnimationFrame(callback) { callback(); },
+    setTimeout, clearTimeout
+  };
+  const source = fs.readFileSync(path.join(__dirname, '../src/renderer/gridMode.js'), 'utf8');
+  vm.runInNewContext(source, context);
+  return { GridMode: root.GridMode, container: new MockElement('div') };
+}
+
+function mockStream() {
+  let stopped = 0;
+  const track = { stop() { stopped++; }, addEventListener() {} };
+  return {
+    getTracks: () => [track], getVideoTracks: () => [track],
+    get stopped() { return stopped; }
+  };
+}
+
+test('grid captures each monitor independently, maps clicks, focuses a tile and cleans up', async () => {
+  const streams = [mockStream(), mockStream()];
+  const captures = [];
+  const { GridMode, container } = createHarness(async (constraints) => {
+    captures.push(constraints.video.mandatory.chromeMediaSourceId);
+    return streams[captures.length - 1];
+  });
+  const inputEvents = [];
+  const focused = [];
+  const grid = new GridMode({
+    container, preference: 'auto',
+    sendInput: (event) => inputEvents.push(event),
+    getCursorMode: () => 'ghost',
+    onCoordinates() {},
+    onFocus: (display) => focused.push(display.id),
+  });
+  const displays = [
+    { id: 'A', name: 'Monitor A', sourceId: 'screen:1:0',
+      bounds: { x: 0, y: 0, width: 1920, height: 1080 } },
+    { id: 'B', name: 'Monitor B', sourceId: 'screen:2:0',
+      bounds: { x: -1920, y: 0, width: 1920, height: 1080 } }
+  ];
+  grid.start(displays);
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.deepEqual(captures, ['screen:1:0', 'screen:2:0']);
+  assert.equal(container.children.length, 2);
+  assert.equal(grid.tiles.length, 2);
+  const firstVideo = grid.tiles[0].video;
+  const pointer = { clientX: 480, clientY: 270, screenX: 500,
+    screenY: 300, button: 0, preventDefault() {} };
+  firstVideo.emit('mousedown', pointer);
+  firstVideo.emit('mouseup', pointer);
+  assert.equal(inputEvents.length, 1);
+  assert.equal(inputEvents[0].type, 'click');
+  assert.equal(inputEvents[0].x, 960);
+  assert.equal(inputEvents[0].y, 540);
+  const focusButton = container.children[1].children[0].children[2];
+  focusButton.emit('click');
+  assert.deepEqual(focused, ['B']);
+  grid.stop();
+  assert.equal(streams[0].stopped, 1);
+  assert.equal(streams[1].stopped, 1);
+  assert.equal(container.children.length, 0);
+  assert.equal(container.hidden, true);
+});
+
+test('a late grid capture is discarded after switching back to single mode', async () => {
+  let resolveCapture;
+  const stream = mockStream();
+  const { GridMode, container } = createHarness(() => new Promise((resolve) => {
+    resolveCapture = resolve;
+  }));
+  const grid = new GridMode({
+    container, preference: '2', sendInput() {}, getCursorMode: () => 'ghost',
+    onCoordinates() {}, onFocus() {}
+  });
+  grid.start([{ id: 'late', name: 'Late display', sourceId: 'screen:2:0',
+    bounds: { x: 0, y: 0, width: 1280, height: 720 } }]);
+  grid.stop();
+  resolveCapture(stream);
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(stream.stopped, 1);
+  assert.equal(grid.tiles.length, 0);
+});
