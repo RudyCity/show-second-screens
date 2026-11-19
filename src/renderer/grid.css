@@ -131,3 +131,24 @@
   .btn { padding: 4px 6px; }
   .screen-grid { padding: 6px; gap: 6px; }
 }
+
+/* Compact, readable feedback during a remote drag; never blocks input. */
+.drag-hint {
+  position: absolute;
+  z-index: 20;
+  left: 50%;
+  bottom: 14px;
+  transform: translateX(-50%);
+  max-width: min(94%, 560px);
+  padding: 8px 12px;
+  border: 1px solid var(--bg-panel-border);
+  border-radius: 8px;
+  background: rgba(12, 15, 22, 0.94);
+  color: var(--text-primary, #eef2f7);
+  font-size: 12px;
+  line-height: 1.45;
+  text-align: center;
+  pointer-events: none;
+  overflow-wrap: anywhere;
+}
+.drag-hint[hidden] { display: none; }
