@@ -6,6 +6,7 @@ const { contextBridge, ipcRenderer } = require('electron');
 contextBridge.exposeInMainWorld('electronAPI', {
   getDisplays: () => ipcRenderer.invoke('display:get-all'),
   getHostDisplay: () => ipcRenderer.invoke('window:get-host-display'),
+  identifyDisplays: () => ipcRenderer.invoke('display:identify'),
   onHostDisplayChanged: (callback) => {
     if (typeof callback !== 'function') return () => {};
     const listener = (_event, host) => callback(host);

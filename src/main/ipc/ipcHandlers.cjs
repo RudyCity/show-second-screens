@@ -3,13 +3,19 @@ const { ipcMain, shell } = require('electron');
 /**
  * Register all IPC channels between Main process and Renderer.
  */
-function registerIpcHandlers({ displayService, inputService, windowManager }) {
+function registerIpcHandlers({ displayService, displayIdentification, inputService, windowManager }) {
   // Display channels
   ipcMain.handle('display:get-all', async () => {
     return await displayService.getDisplays();
   });
 
   ipcMain.handle('window:get-host-display', () => windowManager.getHostDisplay());
+
+  ipcMain.handle('display:identify', (event) => {
+    const activeWindow = windowManager.getWindow();
+    if (!activeWindow || event.sender !== activeWindow.webContents) return 0;
+    return displayIdentification.identify();
+  });
 
   // Input injection channels
   ipcMain.on('input:send-event', (event, inputEvent) => {

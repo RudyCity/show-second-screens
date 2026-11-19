@@ -30,6 +30,7 @@ const btnOpacity = document.getElementById('btnOpacity');
 const btnGrid = document.getElementById('btnGrid');
 const gridColumnsSelect = document.getElementById('gridColumns');
 const btnRefresh = document.getElementById('btnRefresh');
+const btnIdentify = document.getElementById('btnIdentify');
 const btnSmartHide = document.getElementById('btnSmartHide');
 let smartHideEnabled = localStorage.getItem('show-screen:smart-hide') !== 'off';
 btnSmartHide.classList.toggle('active', smartHideEnabled);
@@ -152,6 +153,20 @@ gridColumnsSelect.addEventListener('change', () => {
   gridMode.setColumns(gridColumnsSelect.value);
 });
 btnRefresh.addEventListener('click', () => loadDisplays());
+btnIdentify.addEventListener('click', async () => {
+  btnIdentify.disabled = true;
+  try {
+    const count = await window.electronAPI.identifyDisplays();
+    btnIdentify.title = count > 0
+      ? `Showing numbers on ${count} display${count === 1 ? '' : 's'} for five seconds`
+      : 'Display identification is unavailable on this system';
+  } catch (error) {
+    btnIdentify.title = 'Unable to identify displays: ' + error.message;
+    console.error('Unable to identify displays:', error);
+  } finally {
+    btnIdentify.disabled = false;
+  }
+});
 if (typeof window.electronAPI.onDisplaysChanged === 'function') {
   window.electronAPI.onDisplaysChanged(() => loadDisplays());
 }
@@ -176,7 +191,7 @@ resetDimTimer();
 // Mode Toggle (Ghost Cursor vs Direct Warp)
 btnMode.addEventListener('click', () => {
   cursorMode = cursorMode === 'ghost' ? 'direct' : 'ghost';
-  btnMode.textContent = cursorMode === 'ghost' ? '🎯 Tetap di Sini' : '🚀 Pindah Layar';
+  btnMode.textContent = cursorMode === 'ghost' ? '🎯 Stay Here' : '🚀 Move Cursor';
   btnMode.classList.toggle('active', cursorMode === 'ghost');
 });
 

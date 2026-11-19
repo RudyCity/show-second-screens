@@ -6,7 +6,7 @@
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 [![Platform: Windows | macOS | Linux](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux-green.svg)](#5--cross-platform-input-architecture)
 [![Electron: v33+](https://img.shields.io/badge/Electron-v33+-47848F.svg)](https://www.electronjs.org/)
-[![Version: 0.6.2](https://img.shields.io/badge/Version-0.6.2-22c55e.svg)](CHANGELOG.md)
+[![Version: 0.7.0](https://img.shields.io/badge/Version-0.7.0-22c55e.svg)](CHANGELOG.md)
 [![CI & Release](https://github.com/RudyCity/show-second-screens/actions/workflows/release.yml/badge.svg)](https://github.com/RudyCity/show-second-screens/actions/workflows/release.yml)
 [![GitHub Release](https://img.shields.io/github/v/release/RudyCity/show-second-screens?color=22c55e)](https://github.com/RudyCity/show-second-screens/releases/latest)
 [![Donate: Ko-fi](https://img.shields.io/badge/Ko--fi-Support%20Creator-FF5E5B?logo=ko-fi&logoColor=white)](https://ko-fi.com/rudycity)
@@ -29,7 +29,7 @@ Working across multiple monitors or virtual displays (*Virtual Display Driver / 
 ### 1. 🎯 Ghost Cursor Injection Mode (Default)
 - **Native Windows input**: Win32 `SendInput` handles remote clicks, scroll, and drag. Clicks briefly move the OS pointer and restore it. During a real drag, the OS cursor follows the dragged item and returns only after release.
 - **Cursor Stays in Your Hand**: Hovering over the preview window never pulls your physical mouse cursor onto the target display.
-- **Direct Mode Option**: Toggle the toolbar button from `🎯 Tetap di Sini` (Ghost Mode) to `🚀 Pindah Layar` (Direct Mode) whenever you intentionally want your physical cursor to move to the target screen.
+- **Direct Mode Option**: Toggle the toolbar button from `🎯 Stay Here` (Ghost Mode) to `🚀 Move Cursor` (Direct Mode) whenever you intentionally want your physical cursor to move to the target screen.
 
 ### 2. 🕶️ Smart Hide — No More Self-Preview (v0.5.0 source)
 - **On by default.** Automatically stops capturing whichever monitor currently contains the Show Second Screens window, without turning off the physical monitor.
@@ -64,19 +64,26 @@ Working across multiple monitors or virtual displays (*Virtual Display Driver / 
   - `☕ Support via Ko-fi` (Opens the in-app Ko-fi support modal)
   - `Quit`
 - Click or double-click the tray icon to toggle preview window visibility instantly.
+- The full application interface, close confirmation, secondary-instance warning, and support-window menu now use English.
 - The titlebar X, Alt+F4, and in-app Close button prompt **Tutup Jendela (Tetap di Tray)**, **Keluar Sepenuhnya**, or **Batal**. Closing just the window keeps the process and tray icon running and can be restored through the tray. The tray's **Quit** command (and OS-wide Quit) exits directly without a second prompt.
 - On startup, a single system notification confirms that the app is running in the tray and explains how to reopen or quit it. Windows uses a tray notification; macOS/Linux use native notifications where supported. System notification settings may suppress the alert.
 
-### 6. 🪟 Smart Multi-Monitor Window Positioning
+### 6. 🔢 Identify Displays (v0.7.0)
+- Click **▣ Identify** next to **Refresh** to show large, numbered display badges directly on every connected physical or virtual monitor for five seconds.
+- The displayed numbers match the **Display 1 / Display 2 / ...** names in the monitor selector and Grid Mode, including mixed-DPI and monitors with negative desktop coordinates. The badge identifies the primary display too.
+- Badges do not take focus or intercept clicks, and disappear automatically. Repeated clicks restart the five-second countdown; monitor changes or quitting clear all badges.
+- If a window manager does not support click-through overlays (some Wayland environments), identification is skipped rather than blocking input.
+
+### 7. 🪟 Smart Multi-Monitor Window Positioning
 - Automatically detects the monitor under your cursor at startup (`screen.getDisplayNearestPoint`) and **opens maximized on that monitor by default**. Use the native Restore button to return to the centered floating size; minimize/hide and reopen preserve window state.
 - Supports **Always-on-Top** (*Pin*) and cyclic window transparency (**Opacity: 100% / 85% / 65%**).
 
-### 7. 🔄 Cross-Platform Input Architecture
+### 8. 🔄 Cross-Platform Input Architecture
 - **Windows**: Native Win32 C# daemon (`bin/injector.exe`) using Per-Monitor V2 DPI awareness, `SendInput`, `SetCursorPos`, and `EnumDisplayMonitors`.
 - **macOS**: CoreGraphics / AppleScript / `cliclick` adapter with `hiddenInset` titlebar styling.
 - **Linux**: `xdotool` (X11) and `ydotool` (Wayland) adapter with automatic cursor position restoration.
 
-### 8. 🛡️ Single Instance & Smart Kill Confirmation
+### 9. 🛡️ Single Instance & Smart Kill Confirmation
 - Prevents duplicate background or portable processes from colliding.
 - Prompts with an interactive dialog when another running instance is detected, letting you cleanly terminate existing processes (`Show Second Screens.exe`, portable wrappers, and `injector.exe`) via process-tree cleanup or bring the active window to focus.
 
@@ -110,9 +117,9 @@ We recommend the open-source [**Virtual Display Driver (VDD)**](https://github.c
 
 ### Option A: Download Pre-Built Binaries (Windows, macOS, Ubuntu)
 Download the latest published builds directly from [**GitHub Releases**](https://github.com/RudyCity/show-second-screens/releases/latest) without installing Node.js:
-- **Windows (`x64` Portable)**: `Show-Second-Screens-Portable-0.6.2.exe` (double-click to run immediately, no installation required).
-- **macOS (`arm64` & `x64`)**: `Show-Second-Screens-macOS-0.6.2-<arch>.dmg` or `.zip`.
-- **Ubuntu / Linux (`x64`)**: `Show-Second-Screens-Linux-0.6.2-x86_64.AppImage` or `Show-Second-Screens-Linux-0.6.2-amd64.deb`.
+- **Windows (`x64` Portable)**: `Show-Second-Screens-Portable-0.7.0.exe` (double-click to run immediately, no installation required).
+- **macOS (`arm64` & `x64`)**: `Show-Second-Screens-macOS-0.7.0-<arch>.dmg` or `.zip`.
+- **Ubuntu / Linux (`x64`)**: `Show-Second-Screens-Linux-0.7.0-x86_64.AppImage` or `Show-Second-Screens-Linux-0.7.0-amd64.deb`.
 
 ---
 

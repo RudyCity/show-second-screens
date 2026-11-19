@@ -136,10 +136,10 @@ class WindowManager {
     try {
       const { response } = await dialog.showMessageBox(win, {
         type: 'question',
-        title: 'Tutup Show Second Screens?',
-        message: 'Bagaimana Anda ingin menutup aplikasi?',
-        detail: 'Tutup Jendela menyembunyikan aplikasi, tetapi tetap menjalankannya di system tray. Keluar Sepenuhnya menghentikan aplikasi dan menghapus ikon tray.',
-        buttons: ['Tutup Jendela (Tetap di Tray)', 'Keluar Sepenuhnya', 'Batal'],
+        title: 'Close Show Second Screens?',
+        message: 'What would you like to do?',
+        detail: 'Close Window hides the window but keeps the app running in the system tray. Quit Completely stops the application and removes its tray icon.',
+        buttons: ['Close Window (Keep in Tray)', 'Quit Completely', 'Cancel'],
         defaultId: 0,
         cancelId: 2,
         noLink: true,
@@ -237,7 +237,7 @@ class WindowManager {
     const iconPath = IconResolver.getIconPath(process.platform === 'win32' ? 'ico' : 'png');
 
     this.donateWindow = new BrowserWindow({
-      title: '☕ Dukung Show Second Screens — Ko-fi (rudycity)',
+      title: '☕ Support Show Second Screens — Ko-fi (rudycity)',
       parent: parent && !parent.isDestroyed() ? parent : undefined,
       modal: false,
       x: Math.max(0, winX),
@@ -275,11 +275,11 @@ class WindowManager {
         submenu: [
           { label: 'Reload Halaman', role: 'reload' },
           { type: 'separator' },
-          { label: 'Tutup Jendela', click: () => { if (this.donateWindow) this.donateWindow.close(); } },
+          { label: 'Close Window', click: () => { if (this.donateWindow) this.donateWindow.close(); } },
         ],
       },
       {
-        label: '🌐 Buka di Browser Luar',
+        label: '🌐 Open in Browser',
         click: () => {
           shell.openExternal('https://ko-fi.com/rudycity');
         },

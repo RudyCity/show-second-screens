@@ -39,7 +39,7 @@ class SingleInstanceManager {
    */
   registerSecondInstanceListener() {
     app.on('second-instance', () => {
-      console.log('[SingleInstanceManager] Instance kedua terdeteksi. Mengaktifkan jendela yang sedang berjalan.');
+      console.log('[SingleInstanceManager] Another instance detected. Bringing the running window to the foreground.');
       if (this.windowManager) {
         const win = this.windowManager.getWindow();
         if (win) {
@@ -60,30 +60,30 @@ class SingleInstanceManager {
    * @returns {Promise<boolean>} True if caller should proceed to initialize, false if exiting/relaunched.
    */
   async handleLockConflict() {
-    console.log('[SingleInstanceManager] Instance lain terdeteksi. Menampilkan dialog konfirmasi.');
+    console.log('[SingleInstanceManager] Another instance detected. Showing confirmation dialog.');
 
     const choice = dialog.showMessageBoxSync({
       type: 'warning',
-      buttons: ['Hentikan & Buka Baru', 'Batal'],
+      buttons: ['Stop Existing & Restart', 'Cancel'],
       defaultId: 0,
       cancelId: 1,
       title: 'Show Second Screens',
-      message: 'Aplikasi Show Second Screens sudah berjalan.',
+      message: 'Show Second Screens is already running.',
       detail:
-        'Ditemukan aplikasi Show Second Screens yang sedang berjalan di sistem ini.\n\n' +
-        'Apakah Anda ingin menghentikan (kill) aplikasi yang sedang berjalan dan membuka instance baru?',
+        'An existing Show Second Screens instance is already running on this computer.\n\n' +
+        'Do you want to stop the existing instance and launch a new one?',
       noLink: true,
     });
 
     if (choice === 1) {
       // User cancelled
-      console.log('[SingleInstanceManager] Pengguna membatalkan pembukaan instance baru.');
+      console.log('[SingleInstanceManager] User cancelled starting a new instance.');
       app.exit(0);
       return false;
     }
 
     // User confirmed: Kill existing instances
-    console.log('[SingleInstanceManager] Konfirmasi diterima: Menghentikan instance sebelumnya...');
+    console.log('[SingleInstanceManager] Confirmed: stopping the existing instance...');
     this.killExistingInstances();
 
     // Brief pause to allow OS process termination and handle release
@@ -92,14 +92,14 @@ class SingleInstanceManager {
     // Try to reacquire single instance lock in current process
     const reacquired = app.requestSingleInstanceLock();
     if (reacquired) {
-      console.log('[SingleInstanceManager] Lock berhasil diambil alih pada proses saat ini.');
+      console.log('[SingleInstanceManager] The current process successfully acquired the instance lock.');
       this.gotLock = true;
       this.registerSecondInstanceListener();
       return true;
     }
 
     // If lock cannot be re-acquired in existing process, relaunch cleanly
-    console.log('[SingleInstanceManager] Membuka ulang aplikasi untuk menjamin clean state...');
+    console.log('[SingleInstanceManager] Relaunching the app to ensure a clean instance state...');
     this.relaunchApp();
     return false;
   }
@@ -163,7 +163,7 @@ class SingleInstanceManager {
 
           if (isTargetApp) {
             try {
-              console.log(`[SingleInstanceManager] Menghentikan proses: ${name} (PID: ${pid})`);
+              console.log(`[SingleInstanceManager] Stopping process: ${name} (PID: ${pid})`);
               execSync(`taskkill /F /PID ${pid} /T`, { stdio: 'ignore' });
             } catch (e) {
               // Ignore if already terminated
@@ -197,7 +197,7 @@ class SingleInstanceManager {
       for (const pid of pids) {
         if (pid !== currentPid && pid !== parentPid) {
           try {
-            console.log(`[SingleInstanceManager] Menghentikan Unix process PID: ${pid}`);
+            console.log(`[SingleInstanceManager] Stopping Unix process PID: ${pid}`);
             process.kill(pid, 'SIGKILL');
           } catch (e) {
             // Ignore

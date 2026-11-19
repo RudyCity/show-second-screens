@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.7.0] - 2026-11-19
+
+### Added
+- **Identify Displays:** a toolbar action shows a large numbered badge at the center of every connected monitor for five seconds. Badges use native display coordinates and remain click-through, non-focusable, and off the taskbar.
+- Monitor labels are consistent between the selector, Grid Mode, and on-screen identification badges. Primary monitor labels and mixed-DPI/negative-coordinate arrangements are supported.
+- Automated tests for display labels, placement, timeout cleanup, repeated identification, native mouse passthrough failure, and IPC sender authorization.
+
+### Changed
+- All user-facing interface text is in English, including cursor-mode buttons, the close confirmation dialog, secondary-instance warning, support-window menu, and diagnostic messages.
+- Added a regression test preventing reintroduction of Indonesian interface strings.
+
+---
+
 ## [0.6.2] - 2026-11-19
 
 ### Added

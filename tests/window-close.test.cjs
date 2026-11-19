@@ -91,7 +91,7 @@ test('closing the preview opens a modal and Hide to Tray preserves the window an
   assert.equal(pendingDialogs.length, 1);
   assert.equal(win.isDestroyed(), false);
   assert.deepEqual(pendingDialogs[0].options.buttons, [
-    'Tutup Jendela (Tetap di Tray)', 'Keluar Sepenuhnya', 'Batal'
+    'Close Window (Keep in Tray)', 'Quit Completely', 'Cancel'
   ]);
   assert.equal(pendingDialogs[0].options.defaultId, 0);
   assert.equal(pendingDialogs[0].options.cancelId, 2);

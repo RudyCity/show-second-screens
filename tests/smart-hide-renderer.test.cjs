@@ -43,7 +43,7 @@ async function renderWith(host, displays) {
     'titlebar', 'screenSelect', 'screenVideo', 'viewportContainer',
     'placeholder', 'placeholderText', 'fpsDisplay', 'coordDisplay',
     'btnMode', 'btnPin', 'btnOpacity', 'btnGrid', 'gridColumns',
-    'btnRefresh', 'btnSmartHide', 'screenGrid', 'btnDonate'
+    'btnRefresh', 'btnIdentify', 'btnSmartHide', 'screenGrid', 'btnDonate'
   ];
   const elements = Object.fromEntries(names.map((name) => [name, new FakeElement()]));
   elements.gridColumns.options = ['auto', '2', '3', '4'].map((value) => ({ value }));
@@ -52,6 +52,7 @@ async function renderWith(host, displays) {
   const storage = new Map();
   const captures = [];
   const gridViews = [];
+  const identifyCalls = [];
   let onHostMoved;
   let currentHost = host;
   const gridMode = class {
@@ -66,6 +67,7 @@ async function renderWith(host, displays) {
       electronAPI: {
         getDisplays: async () => displays,
         getHostDisplay: async () => currentHost,
+        identifyDisplays: async () => { identifyCalls.push(true); return displays.length; },
         onDisplaysChanged() {},
         onHostDisplayChanged: (callback) => { onHostMoved = callback; },
         sendInput() {},
@@ -112,7 +114,7 @@ async function renderWith(host, displays) {
   await new Promise((resolve) => setImmediate(resolve));
 
   return {
-    elements, captures, gridViews, storage,
+    elements, captures, gridViews, storage, identifyCalls,
     moveTo(newHost) { currentHost = newHost; onHostMoved(newHost); }
   };
 }
@@ -151,4 +153,13 @@ test('a single-monitor setup pauses local capture until Smart Hide is turned off
   ui.elements.btnSmartHide.emit('click');
   await Promise.resolve();
   assert.equal(ui.captures[0].source, 'screen:1:0');
+});
+
+test('Identify button requests a native label for each screen', async () => {
+  const ui = await renderWith({ id: '100' }, [first, second]);
+  ui.elements.btnIdentify.emit('click');
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(ui.identifyCalls.length, 1);
+  assert.equal(ui.elements.btnIdentify.disabled, false);
+  assert.match(ui.elements.btnIdentify.title, /2 displays/);
 });

@@ -1,6 +1,7 @@
 const { app, screen } = require('electron');
 const { WindowManager } = require('./window/windowManager.cjs');
 const { DisplayService } = require('./capture/displayService.cjs');
+const { DisplayIdentification } = require('./display/displayIdentification.cjs');
 const { InputService } = require('./input/inputService.cjs');
 const { TrayManager } = require('./tray/trayManager.cjs');
 const { registerIpcHandlers } = require('./ipc/ipcHandlers.cjs');
@@ -23,6 +24,7 @@ const gotLock = instanceManager.requestInitialLock();
 // Application Core Services (instantiated on active instance confirmation)
 let windowManager = null;
 let displayService = null;
+let displayIdentification = null;
 let inputService = null;
 let trayManager = null;
 
@@ -43,6 +45,7 @@ app.whenReady().then(async () => {
   // Instantiate application services
   windowManager = new WindowManager();
   displayService = new DisplayService();
+  displayIdentification = new DisplayIdentification();
   inputService = new InputService();
   trayManager = new TrayManager(windowManager);
   windowManager.onVisibilityChanged = () => trayManager.updateContextMenu();
@@ -51,7 +54,7 @@ app.whenReady().then(async () => {
   instanceManager.setWindowManager(windowManager);
 
   // Register IPC bridges and initialize system tray
-  registerIpcHandlers({ displayService, inputService, windowManager });
+  registerIpcHandlers({ displayService, displayIdentification, inputService, windowManager });
   trayManager.init();
 
   const win = windowManager.createWindow();
@@ -68,6 +71,7 @@ app.whenReady().then(async () => {
   };
   for (const eventName of ['display-added', 'display-removed', 'display-metrics-changed']) {
     screen.on(eventName, notifyDisplayChange);
+    screen.on(eventName, () => displayIdentification.clear());
   }
   app.once('will-quit', () => clearTimeout(displayUpdateTimer));
 
@@ -97,6 +101,7 @@ app.on('before-quit', () => {
 });
 
 app.on('will-quit', () => {
+  if (displayIdentification) displayIdentification.clear();
   if (trayManager) {
     trayManager.destroy();
   }

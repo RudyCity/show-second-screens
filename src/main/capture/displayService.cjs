@@ -2,6 +2,7 @@ const { screen, desktopCapturer } = require('electron');
 const { execFileSync } = require('child_process');
 const path = require('path');
 const fs = require('fs');
+const { getDisplayLabels } = require('../display/displayIdentification.cjs');
 
 /**
  * Service to enumerate all physical and virtual displays,
@@ -54,6 +55,7 @@ class DisplayService {
   async getDisplays() {
     const electronDisplays = screen.getAllDisplays();
     const primaryDisplay = screen.getPrimaryDisplay();
+    const displayLabels = getDisplayLabels(electronDisplays, primaryDisplay.id);
     const physicalMonitors = this.getWindowsPhysicalMonitors();
 
     // Fetch screen capture sources
@@ -95,12 +97,15 @@ class DisplayService {
               && Math.abs(physical.height - phys.height) <= 2;
           });
 
-        const isPrimary = phys.isPrimary || (phys.left === 0 && phys.top === 0);
+        const matchedLabel = displayLabels.find((label) => matchedElectron && label.id === String(matchedElectron.id));
+        const displayNumber = matchedLabel ? matchedLabel.number : index + 1;
+        const isPrimary = matchedLabel ? matchedLabel.primary : Boolean(phys.isPrimary);
 
         return {
           id: String(index),
           electronDisplayId: matchedElectron ? String(matchedElectron.id) : null,
-          name: `${source.name}${isPrimary ? ' (Primary)' : ''}`,
+          name: `Display ${displayNumber}${isPrimary ? ' (Primary)' : ''}`,
+          displayNumber,
           sourceId: source.id,
           bounds: {
             x: phys.left,
@@ -131,6 +136,7 @@ class DisplayService {
         id: String(disp.id),
         electronDisplayId: String(disp.id),
         name: `Display ${index + 1}${disp.id === primaryDisplay.id ? ' (Primary)' : ''}`,
+        displayNumber: index + 1,
         sourceId: matchedSource ? matchedSource.id : '',
         bounds,
         scaleFactor: disp.scaleFactor,
