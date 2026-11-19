@@ -43,12 +43,17 @@ if (Array.from(gridColumnsSelect.options).some((o) => o.value === savedGridColum
   gridColumnsSelect.value = savedGridColumns;
 }
 
+const dragController = new DragController({
+  sendInput: (event) => window.electronAPI.sendInput(event),
+  getMode: () => cursorMode,
+  onCoordinates: (text) => { latestCoordText = text; },
+});
+let singleInputCleanup = null;
+
 const gridMode = new GridMode({
   container: document.getElementById('screenGrid'),
   preference: gridColumnsSelect.value,
-  sendInput: (event) => window.electronAPI.sendInput(event),
-  getCursorMode: () => cursorMode,
-  onCoordinates: (text) => { latestCoordText = text; },
+  dragController,
   onFocus: (display) => {
     preferredSingleId = display.id;
     setViewMode('single');
@@ -57,30 +62,15 @@ const gridMode = new GridMode({
 
 function stopSingleCapture() {
   singleCaptureGeneration++;
-  // Release a pending mouse drag before removing the target video.
-  if (isMouseDown && mouseDownData) {
-    if (isDragging || cursorMode === 'direct') {
-      window.electronAPI.sendInput({
-        type: isDragging ? 'dragend' : 'mouseup',
-        button: mouseDownData.button,
-        x: mouseDownData.targetX,
-        y: mouseDownData.targetY,
-        origX: mouseDownData.screenX,
-        origY: mouseDownData.screenY,
-        mode: cursorMode,
-      });
-    }
+  if (singleInputCleanup) {
+    singleInputCleanup();
+    singleInputCleanup = null;
   }
-  isMouseDown = false;
-  isDragging = false;
-  mouseDownData = null;
-  pendingDragPayload = null;
   if (currentStream) currentStream.getTracks().forEach((track) => track.stop());
   currentStream = null;
   screenVideo.srcObject = null;
   screenVideo.onloadedmetadata = null;
   activeDisplay = null;
-  cachedGeo.valid = false;
 }
 
 function setViewMode(mode) {
@@ -158,6 +148,7 @@ if (typeof window.electronAPI.onDisplaysChanged === 'function') {
 window.addEventListener('beforeunload', () => {
   gridMode.stop();
   stopSingleCapture();
+  dragController.dispose();
 });
 
 // Titlebar Auto-dim on idle mouse
@@ -205,338 +196,16 @@ if (btnDonate) {
   });
 }
 
-// Cached Geometry for zero-overhead O(1) coordinate mapping
-const cachedGeo = {
-  valid: false,
-  left: 0,
-  top: 0,
-  width: 0,
-  height: 0,
-  renderWidth: 0,
-  renderHeight: 0,
-  offsetX: 0,
-  offsetY: 0,
-  invRenderWidth: 0,
-  invRenderHeight: 0,
-};
-
-function updateCachedGeometry() {
-  if (!screenVideo || !activeDisplay) {
-    cachedGeo.valid = false;
-    return;
-  }
-  const rect = screenVideo.getBoundingClientRect();
-  if (!rect || rect.width <= 0 || rect.height <= 0) {
-    cachedGeo.valid = false;
-    return;
-  }
-  const videoW = screenVideo.videoWidth || activeDisplay.bounds.width;
-  const videoH = screenVideo.videoHeight || activeDisplay.bounds.height;
-  if (videoW <= 0 || videoH <= 0) {
-    cachedGeo.valid = false;
-    return;
-  }
-
-  const streamAspect = videoW / videoH;
-  const elemAspect = rect.width / rect.height;
-
-  let renderWidth = rect.width;
-  let renderHeight = rect.height;
-  let offsetX = 0;
-  let offsetY = 0;
-
-  if (elemAspect > streamAspect) {
-    renderWidth = rect.height * streamAspect;
-    renderHeight = rect.height;
-    offsetX = (rect.width - renderWidth) * 0.5;
-  } else {
-    renderWidth = rect.width;
-    renderHeight = rect.width / streamAspect;
-    offsetY = (rect.height - renderHeight) * 0.5;
-  }
-
-  cachedGeo.valid = true;
-  cachedGeo.left = rect.left;
-  cachedGeo.top = rect.top;
-  cachedGeo.width = rect.width;
-  cachedGeo.height = rect.height;
-  cachedGeo.renderWidth = renderWidth;
-  cachedGeo.renderHeight = renderHeight;
-  cachedGeo.offsetX = offsetX;
-  cachedGeo.offsetY = offsetY;
-  cachedGeo.invRenderWidth = 1.0 / renderWidth;
-  cachedGeo.invRenderHeight = 1.0 / renderHeight;
-}
-
-window.addEventListener('resize', updateCachedGeometry, { passive: true });
-if (window.ResizeObserver) {
-  const ro = new ResizeObserver(() => updateCachedGeometry());
-  ro.observe(viewportContainer);
-}
-
-// High-performance Coordinate Mapping Math Engine
-function calculateTargetCoordinates(e) {
-  if (!activeDisplay) return null;
-  if (!cachedGeo.valid) {
-    updateCachedGeometry();
-    if (!cachedGeo.valid) return null;
-  }
-
-  const clickX = e.clientX - cachedGeo.left;
-  const clickY = e.clientY - cachedGeo.top;
-
-  const relX = clickX - cachedGeo.offsetX;
-  const relY = clickY - cachedGeo.offsetY;
-
-  // Ignore interactions outside the rendered display content (black bars)
-  if (relX < 0 || relX > cachedGeo.renderWidth || relY < 0 || relY > cachedGeo.renderHeight) {
-    return null;
-  }
-
-  const u = relX * cachedGeo.invRenderWidth;
-  const v = relY * cachedGeo.invRenderHeight;
-
-  const bounds = activeDisplay.bounds;
-  const targetX = Math.round(bounds.x + u * bounds.width);
-  const targetY = Math.round(bounds.y + v * bounds.height);
-
-  return { targetX, targetY, normX: u, normY: v };
-}
-
-// Interactive Input Simulation Listener on Video Preview
-let isMouseDown = false;
-let isDragging = false;
-let mouseDownData = null;
-let throttleTimeout = null;
-let pendingDragPayload = null;
-let dragRafScheduled = false;
-
-function queueDragEvent(payload) {
-  pendingDragPayload = payload;
-  if (!dragRafScheduled) {
-    dragRafScheduled = true;
-    requestAnimationFrame(() => {
-      dragRafScheduled = false;
-      if (pendingDragPayload && isDragging) {
-        window.electronAPI.sendInput(pendingDragPayload);
-        pendingDragPayload = null;
-      }
-    });
-  }
-}
-
-screenVideo.addEventListener('mousemove', (e) => {
-  const coords = calculateTargetCoordinates(e);
-  if (!coords) return;
-
-  latestCoordText = `X: ${coords.targetX} Y: ${coords.targetY}`;
-
-  // In Ghost mode: cursor stays 100% on current desktop during hover and clicks!
-  if (cursorMode === 'ghost') {
-    if (isMouseDown && mouseDownData) {
-      const dx = e.clientX - mouseDownData.clientX;
-      const dy = e.clientY - mouseDownData.clientY;
-      const dist = Math.hypot(dx, dy);
-
-      // Initiate drag only when moved beyond 5px threshold
-      if (!isDragging && dist > 5) {
-        isDragging = true;
-        window.electronAPI.sendInput({
-          type: 'dragstart',
-          button: mouseDownData.button,
-          x: mouseDownData.targetX,
-          y: mouseDownData.targetY,
-          origX: mouseDownData.screenX,
-          origY: mouseDownData.screenY,
-          mode: 'ghost',
-        });
-      }
-
-      if (isDragging) {
-        queueDragEvent({
-          type: 'drag',
-          button: mouseDownData.button,
-          x: coords.targetX,
-          y: coords.targetY,
-          origX: e.screenX,
-          origY: e.screenY,
-          mode: 'ghost',
-        });
-      }
-    }
-    return;
-  }
-
-  // In Direct mode: warp cursor to target screen
-  if (!throttleTimeout) {
-    throttleTimeout = setTimeout(() => {
-      throttleTimeout = null;
-      window.electronAPI.sendInput({
-        type: 'mousemove',
-        x: coords.targetX,
-        y: coords.targetY,
-        mode: 'direct',
-      });
-    }, 16);
-  }
-});
-
-screenVideo.addEventListener('mousedown', (e) => {
-  e.preventDefault();
-  const coords = calculateTargetCoordinates(e);
-  if (!coords) return;
-
-  const button = e.button === 2 ? 'right' : e.button === 1 ? 'middle' : 'left';
-  isMouseDown = true;
-  isDragging = false;
-  mouseDownData = {
-    clientX: e.clientX,
-    clientY: e.clientY,
-    screenX: e.screenX,
-    screenY: e.screenY,
-    targetX: coords.targetX,
-    targetY: coords.targetY,
-    button: button,
-  };
-
-  if (cursorMode === 'direct') {
-    window.electronAPI.sendInput({
-      type: 'mousedown',
-      button: button,
-      x: coords.targetX,
-      y: coords.targetY,
-      mode: 'direct',
-    });
-  }
-  // Note: In Ghost mode, do NOT send mousedown or warp cursor to target screen!
-  // This ensures clicks never warp the physical cursor away from the preview window.
-});
-
-screenVideo.addEventListener('mouseup', (e) => {
-  e.preventDefault();
-  pendingDragPayload = null;
-  const wasMouseDown = isMouseDown;
-  const wasDragging = isDragging;
-  const savedDown = mouseDownData;
-  isMouseDown = false;
-  isDragging = false;
-  mouseDownData = null;
-
-  const coords = calculateTargetCoordinates(e);
-  if (!coords) {
-    if (wasDragging && savedDown) {
-      window.electronAPI.sendInput({
-        type: 'dragend',
-        button: savedDown.button,
-        x: savedDown.targetX,
-        y: savedDown.targetY,
-        origX: savedDown.screenX,
-        origY: savedDown.screenY,
-        mode: cursorMode,
-      });
-    }
-    return;
-  }
-
-  const button = e.button === 2 ? 'right' : e.button === 1 ? 'middle' : 'left';
-
-  if (cursorMode === 'ghost') {
-    if (wasDragging) {
-      window.electronAPI.sendInput({
-        type: 'dragend',
-        button: button,
-        x: coords.targetX,
-        y: coords.targetY,
-        origX: e.screenX,
-        origY: e.screenY,
-        mode: 'ghost',
-      });
-    } else if (wasMouseDown) {
-      window.electronAPI.sendInput({
-        type: 'click',
-        button: button,
-        x: coords.targetX,
-        y: coords.targetY,
-        origX: e.screenX,
-        origY: e.screenY,
-        mode: 'ghost',
-      });
-    }
-  } else {
-    window.electronAPI.sendInput({
-      type: 'mouseup',
-      button: button,
-      x: coords.targetX,
-      y: coords.targetY,
-      mode: 'direct',
-    });
-  }
-});
-
-// Suppress default/redundant browser click & contextmenu events since mouseup handles them
-screenVideo.addEventListener('click', (e) => {
-  e.preventDefault();
-});
-
-screenVideo.addEventListener('contextmenu', (e) => {
-  e.preventDefault();
-});
-
-screenVideo.addEventListener('dblclick', (e) => {
-  e.preventDefault();
-  const coords = calculateTargetCoordinates(e);
-  if (!coords) return;
-
-  window.electronAPI.sendInput({
-    type: 'dblclick',
-    x: coords.targetX,
-    y: coords.targetY,
-    origX: e.screenX,
-    origY: e.screenY,
-    mode: cursorMode,
-  });
-});
-
-screenVideo.addEventListener('wheel', (e) => {
-  e.preventDefault();
-  const coords = calculateTargetCoordinates(e);
-  if (!coords) return;
-
-  window.electronAPI.sendInput({
-    type: 'wheel',
-    deltaY: e.deltaY,
-    x: coords.targetX,
-    y: coords.targetY,
-    origX: e.screenX,
-    origY: e.screenY,
-    mode: cursorMode,
-  });
-}, { passive: false });
-
-screenVideo.addEventListener('mouseleave', () => {
-  pendingDragPayload = null;
-  latestCoordText = 'X: -- Y: --';
-  if (isDragging && activeDisplay && mouseDownData) {
-    window.electronAPI.sendInput({
-      type: 'dragend',
-      button: 'left',
-      x: mouseDownData.targetX,
-      y: mouseDownData.targetY,
-      origX: mouseDownData.screenX,
-      origY: mouseDownData.screenY,
-      mode: cursorMode,
-    });
-  }
-  isMouseDown = false;
-  isDragging = false;
-  mouseDownData = null;
-});
-
+// All single-preview and grid-preview pointer input is managed by DragController.
 // Stream Setup & Display Switching
 async function switchDisplay(display) {
   if (!display || !display.sourceId) return;
   const captureGeneration = ++singleCaptureGeneration;
 
+  if (singleInputCleanup) {
+    singleInputCleanup();
+    singleInputCleanup = null;
+  }
   activeDisplay = display;
   placeholder.style.display = 'flex';
   placeholderText.textContent = `Connecting to ${display.name}...`;
@@ -572,10 +241,10 @@ async function switchDisplay(display) {
     }
     currentStream = stream;
     screenVideo.srcObject = stream;
+    singleInputCleanup = dragController.addSurface(screenVideo, display);
     screenVideo.onloadedmetadata = () => {
       screenVideo.play().catch((error) => console.error('Video playback failed:', error));
       placeholder.style.display = 'none';
-      updateCachedGeometry();
     };
   } catch (err) {
     console.error('Error starting screen stream:', err);
