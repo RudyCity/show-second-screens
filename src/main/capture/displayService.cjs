@@ -82,10 +82,24 @@ class DisplayService {
           physicalMonitors[index] ||
           physicalMonitors[0];
 
+        // Associate the captured source with Electron's stable display ID.
+        // Electron display bounds are DIP; Windows injector bounds are physical pixels.
+        const matchedElectron = electronDisplays.find((disp) => source.display_id && String(disp.id) === String(source.display_id))
+          || electronDisplays.find((disp) => {
+            const physical = typeof screen.dipToScreenRect === 'function'
+              ? screen.dipToScreenRect(null, disp.bounds)
+              : disp.bounds;
+            return Math.abs(physical.x - phys.left) <= 2
+              && Math.abs(physical.y - phys.top) <= 2
+              && Math.abs(physical.width - phys.width) <= 2
+              && Math.abs(physical.height - phys.height) <= 2;
+          });
+
         const isPrimary = phys.isPrimary || (phys.left === 0 && phys.top === 0);
 
         return {
           id: String(index),
+          electronDisplayId: matchedElectron ? String(matchedElectron.id) : null,
           name: `${source.name}${isPrimary ? ' (Primary)' : ''}`,
           sourceId: source.id,
           bounds: {
@@ -115,6 +129,7 @@ class DisplayService {
 
       return {
         id: String(disp.id),
+        electronDisplayId: String(disp.id),
         name: `Display ${index + 1}${disp.id === primaryDisplay.id ? ' (Primary)' : ''}`,
         sourceId: matchedSource ? matchedSource.id : '',
         bounds,
