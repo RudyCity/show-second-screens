@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.5.0] - 2026-11-19
+
+### Added
+- **Smart Hide (enabled by default):** Automatically excludes the monitor containing the Show Second Screens window from Grid Mode and stops its capture stream, preventing self-preview feedback.
+- Tracks native window movement, resize, and monitor changes; moving the app from monitor 1 to monitor 2 restores monitor 1 and pauses monitor 2.
+- In Single Mode, transparently switches to another available monitor; when only the local monitor exists, pauses capture with an explanation instead of showing recursive video.
+- User can toggle Smart Hide on/off in the toolbar. Preference is remembered across restarts, and physical monitors are never powered off.
+- Added regression tests for multiple displays, Windows physical-monitor fallback, automatic exclusion, and single-mode fallback.
+
+---
+
 ## [0.4.0] - 2026-11-19
 
 ### Added
