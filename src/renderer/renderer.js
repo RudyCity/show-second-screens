@@ -48,6 +48,15 @@ const dragController = new DragController({
   sendInput: (event) => window.electronAPI.sendInput(event),
   getMode: () => cursorMode,
   onCoordinates: (text) => { latestCoordText = text; },
+  onDragState: (state) => {
+    if (!dragHint) return;
+    dragHint.hidden = !state.active;
+    if (state.active) {
+      dragHint.textContent = state.dragging
+        ? 'Dragging: ' + state.source + ' → ' + state.destination + ' · Release to drop'
+        : 'Hold and move to drag · Esc releases';
+    }
+  },
 });
 let singleInputCleanup = null;
 
