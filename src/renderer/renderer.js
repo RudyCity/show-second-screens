@@ -2,6 +2,8 @@
 let currentDisplays = [];
 let activeDisplay = null;
 let currentStream = null;
+let singleCaptureGeneration = 0;
+let displayLoadGeneration = 0;
 let isAlwaysOnTop = true;
 let cursorMode = 'ghost'; // 'ghost' = cursor stays 100% on current desktop! 'direct' = cursor moves to target display
 let opacityLevels = [1.0, 0.85, 0.65];
@@ -23,6 +25,92 @@ const coordDisplay = document.getElementById('coordDisplay');
 const btnMode = document.getElementById('btnMode');
 const btnPin = document.getElementById('btnPin');
 const btnOpacity = document.getElementById('btnOpacity');
+const btnGrid = document.getElementById('btnGrid');
+const gridColumnsSelect = document.getElementById('gridColumns');
+const btnRefresh = document.getElementById('btnRefresh');
+const savedGridColumns = localStorage.getItem('show-screen:grid-columns') || 'auto';
+const initialViewMode = localStorage.getItem('show-screen:view-mode') === 'grid' ? 'grid' : 'single';
+let viewMode = 'single';
+let firstDisplayLoad = true;
+if (Array.from(gridColumnsSelect.options).some((o) => o.value === savedGridColumns)) {
+  gridColumnsSelect.value = savedGridColumns;
+}
+
+const gridMode = new GridMode({
+  container: document.getElementById('screenGrid'),
+  preference: gridColumnsSelect.value,
+  sendInput: (event) => window.electronAPI.sendInput(event),
+  getCursorMode: () => cursorMode,
+  onCoordinates: (text) => { latestCoordText = text; },
+  onFocus: (display) => setViewMode('single', display),
+});
+
+function stopSingleCapture() {
+  singleCaptureGeneration++;
+  // Release a pending mouse drag before removing the target video.
+  if (isMouseDown && mouseDownData) {
+    if (isDragging || cursorMode === 'direct') {
+      window.electronAPI.sendInput({
+        type: isDragging ? 'dragend' : 'mouseup',
+        button: mouseDownData.button,
+        x: mouseDownData.targetX,
+        y: mouseDownData.targetY,
+        origX: mouseDownData.screenX,
+        origY: mouseDownData.screenY,
+        mode: cursorMode,
+      });
+    }
+  }
+  isMouseDown = false;
+  isDragging = false;
+  mouseDownData = null;
+  pendingDragPayload = null;
+  if (currentStream) currentStream.getTracks().forEach((track) => track.stop());
+  currentStream = null;
+  screenVideo.srcObject = null;
+  screenVideo.onloadedmetadata = null;
+  activeDisplay = null;
+  cachedGeo.valid = false;
+}
+
+function setViewMode(mode, display) {
+  if (mode === 'grid') {
+    stopSingleCapture();
+    viewMode = 'grid';
+    viewportContainer.classList.add('grid-active');
+    gridMode.start(currentDisplays);
+  } else {
+    gridMode.stop();
+    viewMode = 'single';
+    viewportContainer.classList.remove('grid-active');
+    const target = display || currentDisplays.find((d) => d.id === screenSelect.value);
+    if (target) {
+      screenSelect.value = target.id;
+      switchDisplay(target);
+    }
+  }
+  btnGrid.classList.toggle('active', viewMode === 'grid');
+  btnGrid.setAttribute('aria-pressed', String(viewMode === 'grid'));
+  btnGrid.textContent = viewMode === 'grid' ? '▣ Single' : '▦ Grid';
+  gridColumnsSelect.hidden = viewMode !== 'grid';
+  localStorage.setItem('show-screen:view-mode', viewMode);
+}
+
+btnGrid.addEventListener('click', () => {
+  setViewMode(viewMode === 'grid' ? 'single' : 'grid');
+});
+gridColumnsSelect.addEventListener('change', () => {
+  localStorage.setItem('show-screen:grid-columns', gridColumnsSelect.value);
+  gridMode.setColumns(gridColumnsSelect.value);
+});
+btnRefresh.addEventListener('click', () => loadDisplays());
+if (typeof window.electronAPI.onDisplaysChanged === 'function') {
+  window.electronAPI.onDisplaysChanged(() => loadDisplays());
+}
+window.addEventListener('beforeunload', () => {
+  gridMode.stop();
+  stopSingleCapture();
+});
 
 // Titlebar Auto-dim on idle mouse
 let dimTimeout;
@@ -399,6 +487,7 @@ screenVideo.addEventListener('mouseleave', () => {
 // Stream Setup & Display Switching
 async function switchDisplay(display) {
   if (!display || !display.sourceId) return;
+  const captureGeneration = ++singleCaptureGeneration;
 
   activeDisplay = display;
   placeholder.style.display = 'flex';
@@ -429,53 +518,74 @@ async function switchDisplay(display) {
       },
     });
 
+    if (captureGeneration !== singleCaptureGeneration || viewMode === 'grid') {
+      stream.getTracks().forEach((track) => track.stop());
+      return;
+    }
     currentStream = stream;
     screenVideo.srcObject = stream;
     screenVideo.onloadedmetadata = () => {
-      screenVideo.play();
+      screenVideo.play().catch((error) => console.error('Video playback failed:', error));
       placeholder.style.display = 'none';
       updateCachedGeometry();
     };
   } catch (err) {
     console.error('Error starting screen stream:', err);
-    placeholderText.textContent = `Failed to stream ${display.name}: ${err.message}`;
+    if (captureGeneration === singleCaptureGeneration && viewMode !== 'grid') {
+      placeholderText.textContent = `Failed to stream ${display.name}: ${err.message}`;
+    }
   }
 }
 
-// Display Enumeration
+// Display Enumeration (also called after monitor hot-plug events)
 async function loadDisplays() {
+  const requestId = ++displayLoadGeneration;
+  const selectedId = screenSelect.value;
   try {
-    currentDisplays = await window.electronAPI.getDisplays();
-    screenSelect.innerHTML = '';
+    const displays = await window.electronAPI.getDisplays();
+    if (requestId !== displayLoadGeneration) return;
+    currentDisplays = displays || [];
+    screenSelect.replaceChildren();
 
-    if (!currentDisplays || currentDisplays.length === 0) {
-      screenSelect.innerHTML = '<option value="">No displays found</option>';
+    if (!currentDisplays.length) {
+      const opt = document.createElement('option');
+      opt.value = '';
+      opt.textContent = 'No displays found';
+      screenSelect.appendChild(opt);
+      stopSingleCapture();
+      placeholder.style.display = 'flex';
       placeholderText.textContent = 'No active monitors detected.';
+      if (viewMode === 'grid') gridMode.start([]);
+      firstDisplayLoad = false;
       return;
     }
 
     currentDisplays.forEach((disp) => {
       const opt = document.createElement('option');
       opt.value = disp.id;
-      opt.textContent = `${disp.name} (${disp.bounds.width}x${disp.bounds.height})`;
+      opt.textContent = disp.name + ' (' + disp.bounds.width + 'x' + disp.bounds.height + ')';
       screenSelect.appendChild(opt);
     });
 
-    // Default to secondary display if available, else primary
     const secondary = currentDisplays.find((d) => !d.isPrimary);
-    const target = secondary || currentDisplays[0];
+    const target = currentDisplays.find((d) => d.id === selectedId) || secondary || currentDisplays[0];
     screenSelect.value = target.id;
-    switchDisplay(target);
+    const desiredMode = firstDisplayLoad ? initialViewMode : viewMode;
+    firstDisplayLoad = false;
+    setViewMode(desiredMode, target);
   } catch (err) {
+    if (requestId !== displayLoadGeneration) return;
     console.error('Error loading displays:', err);
+    if (viewMode !== 'grid') {
+      placeholder.style.display = 'flex';
+      placeholderText.textContent = 'Failed to detect monitors: ' + err.message;
+    }
   }
 }
 
 screenSelect.addEventListener('change', () => {
   const selected = currentDisplays.find((d) => d.id === screenSelect.value);
-  if (selected) {
-    switchDisplay(selected);
-  }
+  if (selected) setViewMode('single', selected);
 });
 
 // FPS & Coords Telemetry Counter (RAF-decoupled)
