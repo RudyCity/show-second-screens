@@ -40,6 +40,7 @@ function harness({ ignoreMouseFailure = false } = {}) {
       this.ignoreOptions = options;
       if (ignoreMouseFailure) throw new Error('Mouse passthrough is unavailable');
     }
+    setAlwaysOnTop(enabled, level) { this.topmost = { enabled, level }; }
     loadURL(url) { this.url = url; return Promise.resolve(); }
     showInactive() { this.visible = true; }
     isDestroyed() { return this.destroyed; }
@@ -94,6 +95,7 @@ test('Identify displays creates one click-through, non-focusable badge per scree
   assert.equal(windows[0].options.transparent, true);
   assert.equal(windows[0].options.webPreferences.nodeIntegration, false);
   assert.equal(windows[0].ignoreMouse, true);
+  assert.deepEqual(windows[0].topmost, { enabled: true, level: 'screen-saver' });
   assert.equal(windows[1].ignoreMouse, true);
   assert.equal(windows[0].visible, false);
   windows[0].webContents.emit('did-finish-load');

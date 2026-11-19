@@ -90,6 +90,9 @@ class DisplayIdentification {
         // If click-through is unsupported (e.g. restricted Wayland), do not
         // display a label that could intercept any screen or mouse input.
         overlay.setIgnoreMouseEvents(true, { forward: true });
+        // Main preview uses screen-saver level when pinned on Windows.
+        // Match it so identification also appears over the host display.
+        overlay.setAlwaysOnTop(true, 'screen-saver');
         overlay.webContents.once('did-finish-load', () => {
           if (!overlay.isDestroyed()) overlay.showInactive();
         });
