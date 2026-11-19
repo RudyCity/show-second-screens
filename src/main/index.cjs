@@ -45,6 +45,7 @@ app.whenReady().then(async () => {
   displayService = new DisplayService();
   inputService = new InputService();
   trayManager = new TrayManager(windowManager);
+  windowManager.onVisibilityChanged = () => trayManager.updateContextMenu();
 
   // Connect WindowManager to SingleInstanceManager for second-instance focus handling
   instanceManager.setWindowManager(windowManager);
@@ -89,6 +90,10 @@ app.on('window-all-closed', () => {
     return;
   }
   // On Windows and Linux, keep running in System Tray
+});
+
+app.on('before-quit', () => {
+  if (windowManager) windowManager.prepareToQuit();
 });
 
 app.on('will-quit', () => {

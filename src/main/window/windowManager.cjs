@@ -1,4 +1,4 @@
-const { BrowserWindow, screen, Menu, shell } = require('electron');
+const { BrowserWindow, screen, Menu, shell, dialog, app } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const { IconResolver } = require('./iconResolver.cjs');
@@ -13,6 +13,9 @@ class WindowManager {
     this.donateWindow = null;
     this.isAlwaysOnTop = true;
     this.hostDisplayTimer = null;
+    this.isQuitting = false;
+    this.closeDialogOpen = false;
+    this.onVisibilityChanged = null;
   }
 
   createWindow() {
@@ -95,6 +98,14 @@ class WindowManager {
     this.mainWindow.moveTop();
     this.mainWindow.setAlwaysOnTop(this.isAlwaysOnTop, isMac ? 'floating' : 'screen-saver');
 
+    // Titlebar X, keyboard shortcuts, and renderer Close share one decision.
+    this.mainWindow.on('close', (event) => this.confirmClose(event));
+    for (const name of ['hide', 'show']) {
+      this.mainWindow.on(name, () => {
+        if (typeof this.onVisibilityChanged === 'function') this.onVisibilityChanged();
+      });
+    }
+
     this.mainWindow.on('closed', () => {
       clearTimeout(this.hostDisplayTimer);
       this.hostDisplayTimer = null;
@@ -102,6 +113,48 @@ class WindowManager {
     });
 
     return this.mainWindow;
+  }
+
+  /**
+   * Called before app.quit() closes windows, including Quit from the tray.
+   */
+  prepareToQuit() {
+    this.isQuitting = true;
+  }
+
+  /**
+   * Ask whether to hide to the tray or quit; ignore duplicate close gestures.
+   */
+  async confirmClose(event) {
+    if (this.isQuitting) return;
+    event.preventDefault();
+    if (this.closeDialogOpen) return;
+
+    const win = this.mainWindow;
+    if (!win || win.isDestroyed()) return;
+    this.closeDialogOpen = true;
+    try {
+      const { response } = await dialog.showMessageBox(win, {
+        type: 'question',
+        title: 'Tutup Show Second Screens?',
+        message: 'Bagaimana Anda ingin menutup aplikasi?',
+        detail: 'Tutup Jendela menyembunyikan aplikasi, tetapi tetap menjalankannya di system tray. Keluar Sepenuhnya menghentikan aplikasi dan menghapus ikon tray.',
+        buttons: ['Tutup Jendela (Tetap di Tray)', 'Keluar Sepenuhnya', 'Batal'],
+        defaultId: 0,
+        cancelId: 2,
+        noLink: true,
+      });
+      if (this.isQuitting || win.isDestroyed() || win !== this.mainWindow) return;
+      if (response === 0) {
+        win.hide();
+      } else if (response === 1) {
+        app.quit();
+      }
+    } catch (error) {
+      console.error('[WindowManager] Close confirmation failed:', error);
+    } finally {
+      this.closeDialogOpen = false;
+    }
   }
 
   centerOnActiveScreen() {
@@ -265,11 +318,9 @@ class WindowManager {
   }
 
   close() {
-    if (this.donateWindow && !this.donateWindow.isDestroyed()) {
-      this.donateWindow.close();
-      this.donateWindow = null;
-    }
-    if (this.mainWindow) this.mainWindow.close();
+    // The main close handler asks whether to hide or quit. Do not close
+    // auxiliary windows unless the user chooses to exit the application.
+    if (this.mainWindow && !this.mainWindow.isDestroyed()) this.mainWindow.close();
   }
 }
 

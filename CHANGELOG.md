@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.6.2] - 2026-11-19
+
+### Added
+- Native close confirmation modal with Hide to Tray, Quit Completely, and Cancel options when the main window receives a close request.
+- Closing via the titlebar, keyboard, or in-app Close now follows the same decision; tray Quit and explicit OS quit remain direct.
+- Regression tests for dialog choices, duplicate close gestures, window restoration, and direct quit bypass.
+
+---
+
 ## [0.6.1] - 2026-11-19
 
 ### Changed
