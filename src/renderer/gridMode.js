@@ -77,12 +77,26 @@
             });
           }
         }
+      } else if (down && down.mode === 'direct') {
+        queuedDrag = { pos: pos, screenX: e.screenX, screenY: e.screenY };
+        if (!dragScheduled) {
+          dragScheduled = true;
+          requestAnimationFrame(() => {
+            dragScheduled = false;
+            if (!queuedDrag || !down || down.mode !== 'direct') return;
+            const drag = queuedDrag;
+            queuedDrag = null;
+            send('drag', drag.pos, { screenX: drag.screenX, screenY: drag.screenY }, { button: down.button });
+          });
+        }
       } else if (callbacks.getCursorMode() === 'direct') {
         lastHover = pos;
         if (!hoverTimer) {
           hoverTimer = setTimeout(() => {
             hoverTimer = null;
-            if (lastHover && !down) send('mousemove', lastHover, e, { mode: 'direct' });
+            if (lastHover && !down) {
+              send('mousemove', lastHover, { screenX: e.screenX, screenY: e.screenY }, { mode: 'direct' });
+            }
           }, 16);
         }
       }
@@ -116,6 +130,9 @@
       send('wheel', coords(e), e, { deltaY: e.deltaY });
     }
     function onLeave(e) {
+      clearTimeout(hoverTimer);
+      hoverTimer = null;
+      lastHover = null;
       callbacks.onCoordinates('X: -- Y: --');
       release(e, null, false);
     }
