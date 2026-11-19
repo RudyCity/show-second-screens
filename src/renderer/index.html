@@ -6,6 +6,7 @@
   <link rel="icon" type="image/png" href="../../assets/icon.png">
   <title>Show Second Screens</title>
   <link rel="stylesheet" href="./styles.css">
+  <link rel="stylesheet" href="./grid.css">
 </head>
 <body>
   <!-- Movable & Sleek Titlebar Header -->
@@ -19,11 +20,19 @@
       <select class="screen-select" id="screenSelect" title="Select Target Monitor">
         <option value="">Detecting displays...</option>
       </select>
+      <button class="btn" id="btnRefresh" title="Refresh connected displays">↻ Refresh</button>
       <div class="telemetry" id="fpsDisplay">FPS: --</div>
       <div class="telemetry" id="coordDisplay">X: 0 Y: 0</div>
     </div>
 
     <div class="titlebar-right">
+      <button class="btn" id="btnGrid" title="Toggle between single preview and all-monitor grid" aria-pressed="false">▦ Grid</button>
+      <select class="screen-select" id="gridColumns" title="Grid columns" aria-label="Grid columns" hidden>
+        <option value="auto">Auto columns</option>
+        <option value="2">2 columns</option>
+        <option value="3">3 columns</option>
+        <option value="4">4 columns</option>
+      </select>
       <button class="btn active" id="btnMode" title="Toggle Cursor Mode: Tetap di Sini (Ghost) vs Pindah Layar (Direct)">🎯 Tetap di Sini</button>
       <button class="btn active" id="btnPin" title="Toggle Always on Top">📌 Always On Top</button>
       <button class="btn" id="btnOpacity" title="Toggle Window Opacity">🌓 100%</button>
@@ -39,8 +48,11 @@
     </div>
 
     <video id="screenVideo" class="screen-video" autoplay playsinline muted></video>
+    <div id="screenGrid" class="screen-grid" aria-label="Connected monitor previews" hidden></div>
   </main>
 
+  <script src="./gridMath.js"></script>
+  <script src="./gridMode.js"></script>
   <script src="./renderer.js"></script>
 </body>
 </html>
