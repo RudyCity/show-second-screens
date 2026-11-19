@@ -91,7 +91,10 @@ jobs:
   release:
     name: Publish GitHub Release
     needs: build
-    if: startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && inputs.publish_release == true)
+    # Publish only after all three OS builds and tests have passed.
+    # A new version on main is released once; subsequent commits on the same version
+    # do not overwrite that published binary.
+    if: startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && inputs.publish_release == true) || (github.event_name == 'push' && github.ref == 'refs/heads/main')
     runs-on: ubuntu-latest
 
     steps:
@@ -111,20 +114,29 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          # A tag push releases its explicit version; main releases the version
+          # declared in package.json. Manual dispatch may override the tag.
           TAG="${{ inputs.release_tag }}"
-          if [ -z "$TAG" ]; then
+          if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
             TAG="${GITHUB_REF_NAME}"
+          elif [ -z "$TAG" ]; then
+            TAG="v$(node -p "require('./package.json').version")"
           fi
-          if [ -z "$TAG" ] || [[ "$TAG" != v* ]]; then
-            echo "Invalid release tag: '$TAG'. Expected tag starting with 'v' (e.g. v0.3.9)."
+          if ! [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+([.-][0-9A-Za-z.-]+)?$ ]]; then
+            echo "Invalid release tag: '$TAG'. Expected vMAJOR.MINOR.PATCH."
             exit 1
           fi
 
           if gh release view "$TAG" >/dev/null 2>&1; then
+            if [[ "${GITHUB_REF}" == "refs/heads/main" ]]; then
+              echo "Release $TAG already exists; skipping publication on main."
+              exit 0
+            fi
             gh release upload "$TAG" release-assets/* --clobber
           else
-            NOTES=$(printf 'Cross-platform release builds for **Show Second Screens %s** (Windows Portable, macOS DMG/ZIP, Ubuntu AppImage/DEB).\n\n☕ Support the creator on Ko-fi: https://ko-fi.com/rudycity\n' "$TAG")
+            NOTES=$(printf 'Show Second Screens %s — cross-platform release (Windows Portable, macOS DMG/ZIP, Linux AppImage/DEB).\n\nIncludes Multi-Monitor Grid Mode and Smart Hide that automatically excludes the display containing the app window.\n\n☕ Support: https://ko-fi.com/rudycity\n' "$TAG")
             gh release create "$TAG" release-assets/* \
+              --target "$GITHUB_SHA" \
               --title "Show Second Screens $TAG" \
               --notes "$NOTES" \
               --generate-notes
