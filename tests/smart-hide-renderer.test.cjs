@@ -117,11 +117,13 @@ test('Smart Hide switches active single-screen capture as the window changes mon
   assert.equal(ui.captures.length, 1);
   assert.equal(ui.captures[0].source, 'screen:2:0');
   ui.moveTo({ id: '200' });
-  await Promise.resolve();
+  // getUserMedia resolves asynchronously. Allow its continuation to attach
+  // the new stream before making assertions about the next monitor switch.
+  await new Promise((resolve) => setImmediate(resolve));
   assert.equal(ui.captures[0].stream.stopped, 1);
   assert.equal(ui.captures[1].source, 'screen:1:0');
   ui.moveTo({ id: '100' });
-  await Promise.resolve();
+  await new Promise((resolve) => setImmediate(resolve));
   assert.equal(ui.captures[1].stream.stopped, 1);
   assert.equal(ui.captures[2].source, 'screen:2:0');
 });
