@@ -6,7 +6,7 @@
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 [![Platform: Windows | macOS | Linux](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux-green.svg)](#5--cross-platform-input-architecture)
 [![Electron: v33+](https://img.shields.io/badge/Electron-v33+-47848F.svg)](https://www.electronjs.org/)
-[![Version: 0.5.0](https://img.shields.io/badge/Version-0.5.0-22c55e.svg)](CHANGELOG.md)
+[![Version: 0.6.0](https://img.shields.io/badge/Version-0.6.0-22c55e.svg)](CHANGELOG.md)
 [![CI & Release](https://github.com/RudyCity/show-second-screens/actions/workflows/release.yml/badge.svg)](https://github.com/RudyCity/show-second-screens/actions/workflows/release.yml)
 [![GitHub Release](https://img.shields.io/github/v/release/RudyCity/show-second-screens?color=22c55e)](https://github.com/RudyCity/show-second-screens/releases/latest)
 [![Donate: Ko-fi](https://img.shields.io/badge/Ko--fi-Support%20Creator-FF5E5B?logo=ko-fi&logoColor=white)](https://ko-fi.com/rudycity)
@@ -27,7 +27,7 @@ Working across multiple monitors or virtual displays (*Virtual Display Driver / 
 ## 🚀 Key Features
 
 ### 1. 🎯 Ghost Cursor Injection Mode (Default)
-- **Hardware `SendInput` + Instant Cursor Restore**: On Windows, left-clicks, double-clicks, right-clicks, drags, and scroll events are executed natively at the OS level via Win32 `SendInput` — working reliably across Browsers, File Explorer, Taskbar, Desktop, UWP/WinUI apps, and window titlebars — then immediately restoring your physical cursor back to the preview window in milliseconds.
+- **Native Windows input**: Win32 `SendInput` handles remote clicks, scroll, and drag. Clicks briefly move the OS pointer and restore it. During a real drag, the OS cursor follows the dragged item and returns only after release.
 - **Cursor Stays in Your Hand**: Hovering over the preview window never pulls your physical mouse cursor onto the target display.
 - **Direct Mode Option**: Toggle the toolbar button from `🎯 Tetap di Sini` (Ghost Mode) to `🚀 Pindah Layar` (Direct Mode) whenever you intentionally want your physical cursor to move to the target screen.
 
@@ -42,11 +42,18 @@ Working across multiple monitors or virtual displays (*Virtual Display Driver / 
 - Choose responsive **Auto / 2 / 3 / 4 columns**. Every tile has an independent video stream and mouse hit area; select **Focus** to switch to single-screen control.
 - Ghost Cursor and Direct Mode mouse input remain available per tile, with accurate physical coordinates across negative monitor origins and letterboxed previews.
 - Refresh or hot-plug a monitor to rebuild the grid; switching modes stops unused capture streams. The selected view and column preference are retained.
-- **Availability:** Grid Mode is implemented on the `main` source branch; prebuilt binaries may still be older until a 0.4.0 release is published.
+- Grid and Smart Hide are included in published releases starting with v0.5.0.
 
-### 4. 🖥️ Ultra-Low-Latency 60 FPS Streaming
+### 4. 🖱️ Cross-Monitor Drag & Drop (v0.6.0)
+- In **Grid Mode**, drag from one monitor preview to another: keep holding the left button while moving across tiles and release over the destination preview. Physical target coordinates follow the destination monitor.
+- In **Single Mode**, drag continues when the pointer temporarily leaves the preview video; drop at the last valid target point when released outside the preview.
+- A compact overlay shows the drag origin and current target. **Esc**, lost focus, monitor refresh, switching modes, and closing the app safely release any held virtual button.
+- Drag movement is coalesced per animation frame; native macOS and Linux X11 helpers serialize button-down, move, and button-up commands to avoid reordering.
+- **Platform limits:** Windows uses the native injector; macOS drag requires `cliclick` plus Accessibility permission; Linux drag uses `xdotool` on X11. Wayland support depends on compositor permissions and is not guaranteed. Physical multi-monitor drag has not been verified on every OS configuration.
+
+### 5. 🖥️ Ultra-Low-Latency 60 FPS Streaming
 - Hardware-accelerated screen capture via WebRTC Desktop Media Capture with a zero-copy GPU video compositing pipeline.
-- Zero-reflow coordinate mapping ($O(1)$ cached geometry) and automatic letterbox/pillarbox calculation preserve the target display's exact aspect ratio and 1:1 pixel accuracy across mixed-DPI monitors.
+- Letterbox-aware coordinate mapping preserves display alignment across monitor sizes, negative origins, and mixed-DPI configurations.
 
 ### 5. 📌 System Tray Integration
 - Always-visible dynamic tray icon in the Windows Taskbar, macOS Menu Bar, and Linux AppIndicator.
@@ -101,9 +108,9 @@ We recommend the open-source [**Virtual Display Driver (VDD)**](https://github.c
 
 ### Option A: Download Pre-Built Binaries (Windows, macOS, Ubuntu)
 Download the latest published builds directly from [**GitHub Releases**](https://github.com/RudyCity/show-second-screens/releases/latest) without installing Node.js:
-- **Windows (`x64` Portable)**: `Show-Second-Screens-Portable-0.3.11.exe` (double-click to run immediately, no installation required).
-- **macOS (`arm64` & `x64`)**: `Show-Second-Screens-macOS-0.3.11-<arch>.dmg` or `.zip`.
-- **Ubuntu / Linux (`x64`)**: `Show-Second-Screens-Linux-0.3.11-x86_64.AppImage` or `Show-Second-Screens-Linux-0.3.11-amd64.deb`.
+- **Windows (`x64` Portable)**: `Show-Second-Screens-Portable-0.6.0.exe` (double-click to run immediately, no installation required).
+- **macOS (`arm64` & `x64`)**: `Show-Second-Screens-macOS-0.6.0-<arch>.dmg` or `.zip`.
+- **Ubuntu / Linux (`x64`)**: `Show-Second-Screens-Linux-0.6.0-x86_64.AppImage` or `Show-Second-Screens-Linux-0.6.0-amd64.deb`.
 
 ---
 
@@ -112,8 +119,8 @@ Download the latest published builds directly from [**GitHub Releases**](https:/
 #### 1. Prerequisites
 - [Node.js](https://nodejs.org/) (v18, v20, or v22+)
 - **Windows**: Windows 10 / 11 (`csc.exe` C# compiler is built into `.NET Framework`).
-- **macOS**: macOS Monterey / Ventura / Sonoma / Sequoia (optional: `brew install cliclick` for optimal input injection).
-- **Linux**: Ubuntu / Debian / Fedora / Arch (optional: `sudo apt install xdotool` for X11 mouse simulation).
+- **macOS**: macOS Monterey / Ventura / Sonoma / Sequoia (required: `brew install cliclick` for drag-and-drop and enable Accessibility permissions).
+- **Linux**: Ubuntu / Debian / Fedora / Arch (install `sudo apt install xdotool` for X11 drag-and-drop; Wayland input control varies).
 
 #### 2. Clone the Repository
 ```bash
@@ -171,7 +178,7 @@ Output artifacts are placed in `dist/`.
 | **Left Click** | Click elements on the target monitor. |
 | **Right Click** | Open context menus on the target monitor. |
 | **Double Click** | Open files, folders, or shortcuts on the target monitor. |
-| **Drag & Drop** | Hold left-click and drag to move windows, files, or sliders on the target display. |
+| **Drag & Drop** | Hold the left button on a preview and move; in Grid Mode continue into a different tile to drop on that monitor. A small overlay shows the destination. Esc safely releases a held button. |
 | **Scroll Wheel** | Scroll vertically on the target monitor. |
 | **System Tray Icon** | Left-click to show/hide window; right-click for quick controls. |
 
