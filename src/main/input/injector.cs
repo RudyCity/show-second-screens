@@ -24,6 +24,9 @@ namespace ShowSecondScreens.Input
         [DllImport("user32.dll")]
         private static extern bool GetCursorPos(out POINT lpPoint);
 
+        [DllImport("user32.dll")]
+        private static extern int GetSystemMetrics(int nIndex);
+
         [DllImport("user32.dll", SetLastError = true)]
         private static extern uint SendInput(uint nInputs, INPUT[] pInputs, int cbSize);
 
@@ -164,6 +167,7 @@ namespace ShowSecondScreens.Input
         }
 
         private const uint INPUT_MOUSE = 0;
+        private const uint MOUSEEVENTF_MOVE = 0x0001;
         private const uint MOUSEEVENTF_LEFTDOWN = 0x0002;
         private const uint MOUSEEVENTF_LEFTUP = 0x0004;
         private const uint MOUSEEVENTF_RIGHTDOWN = 0x0008;
@@ -171,6 +175,13 @@ namespace ShowSecondScreens.Input
         private const uint MOUSEEVENTF_MIDDLEDOWN = 0x0020;
         private const uint MOUSEEVENTF_MIDDLEUP = 0x0040;
         private const uint MOUSEEVENTF_WHEEL = 0x0800;
+        private const uint MOUSEEVENTF_VIRTUALDESK = 0x4000;
+        private const uint MOUSEEVENTF_ABSOLUTE = 0x8000;
+
+        private const int SM_XVIRTUALSCREEN = 76;
+        private const int SM_YVIRTUALSCREEN = 77;
+        private const int SM_CXVIRTUALSCREEN = 78;
+        private const int SM_CYVIRTUALSCREEN = 79;
 
         private static POINT _savedOrigin;
         private static bool _isDragging = false;
@@ -307,7 +318,7 @@ namespace ShowSecondScreens.Input
                             {
                                 GetCursorPos(out _savedOrigin);
                                 _isDragging = true;
-                                SetCursorPos(tx, ty);
+                                MoveCursorExact(tx, ty);
                                 System.Threading.Thread.Sleep(5);
                                 FireDown(btnD);
                             }
@@ -327,13 +338,13 @@ namespace ShowSecondScreens.Input
 
                             if (!PhantomButton(tx, ty, btnU, false))
                             {
-                                SetCursorPos(tx, ty);
+                                MoveCursorExact(tx, ty);
                                 System.Threading.Thread.Sleep(5);
                                 FireUp(btnU);
                                 if (_isDragging)
                                 {
                                     System.Threading.Thread.Sleep(5);
-                                    SetCursorPos(_savedOrigin.X, _savedOrigin.Y);
+                                    MoveCursorExact(_savedOrigin.X, _savedOrigin.Y);
                                     _isDragging = false;
                                 }
                             }
@@ -352,7 +363,7 @@ namespace ShowSecondScreens.Input
                             string btnM = parts.Length >= 4 ? parts[3].ToLowerInvariant() : null;
                             if (!PhantomMove(tx, ty, btnM))
                             {
-                                SetCursorPos(tx, ty);
+                                MoveCursorExact(tx, ty);
                             }
                         }
                         break;
@@ -444,7 +455,7 @@ namespace ShowSecondScreens.Input
                             GetCursorPos(out _savedOrigin);
                             _isDragging = true;
 
-                            SetCursorPos(tx, ty);
+                            MoveCursorExact(tx, ty);
                             System.Threading.Thread.Sleep(5);
                             FireDown(btn);
                         }
@@ -457,14 +468,14 @@ namespace ShowSecondScreens.Input
                             int ty = int.Parse(parts[2]);
                             string btn = parts.Length >= 4 ? parts[3].ToLowerInvariant() : "left";
 
-                            SetCursorPos(tx, ty);
+                            MoveCursorExact(tx, ty);
                             System.Threading.Thread.Sleep(5);
                             FireUp(btn);
 
                             if (_isDragging)
                             {
                                 System.Threading.Thread.Sleep(6);
-                                SetCursorPos(_savedOrigin.X, _savedOrigin.Y);
+                                MoveCursorExact(_savedOrigin.X, _savedOrigin.Y);
                                 _isDragging = false;
                             }
                         }
@@ -475,7 +486,7 @@ namespace ShowSecondScreens.Input
                         {
                             int tx = int.Parse(parts[1]);
                             int ty = int.Parse(parts[2]);
-                            SetCursorPos(tx, ty);
+                            MoveCursorExact(tx, ty);
                         }
                         break;
 
@@ -486,7 +497,7 @@ namespace ShowSecondScreens.Input
                         {
                             int x = int.Parse(parts[1]);
                             int y = int.Parse(parts[2]);
-                            SetCursorPos(x, y);
+                            MoveCursorExact(x, y);
                         }
                         break;
 
@@ -694,16 +705,60 @@ namespace ShowSecondScreens.Input
         // Hardware Ghost implementation (SendInput + cursor restore)
         // ---------------------------------------------------------------------
 
+        /// <summary>
+        /// Moves the cursor to exact physical virtual-screen coordinates, retrying across
+        /// mixed-DPI monitor boundaries so Windows never clamps on an intermediate screen.
+        /// </summary>
+        private static void MoveCursorExact(int tx, int ty)
+        {
+            SetCursorPos(tx, ty);
+            POINT cur;
+            if (GetCursorPos(out cur) && cur.X == tx && cur.Y == ty)
+            {
+                return;
+            }
+
+            System.Threading.Thread.Sleep(1);
+            SetCursorPos(tx, ty);
+            if (GetCursorPos(out cur) && cur.X == tx && cur.Y == ty)
+            {
+                return;
+            }
+
+            int vx = GetSystemMetrics(SM_XVIRTUALSCREEN);
+            int vy = GetSystemMetrics(SM_YVIRTUALSCREEN);
+            int vw = GetSystemMetrics(SM_CXVIRTUALSCREEN);
+            int vh = GetSystemMetrics(SM_CYVIRTUALSCREEN);
+            if (vw > 1 && vh > 1)
+            {
+                int dx = (int)Math.Round(((double)(tx - vx) * 65535.0) / (vw - 1));
+                int dy = (int)Math.Round(((double)(ty - vy) * 65535.0) / (vh - 1));
+                var inp = new INPUT[1];
+                inp[0].type = INPUT_MOUSE;
+                inp[0].u.mi = new MOUSEINPUT
+                {
+                    dx = dx,
+                    dy = dy,
+                    mouseData = 0,
+                    dwFlags = MOUSEEVENTF_MOVE | MOUSEEVENTF_ABSOLUTE | MOUSEEVENTF_VIRTUALDESK,
+                    time = 0,
+                    dwExtraInfo = IntPtr.Zero,
+                };
+                SendInput(1, inp, Marshal.SizeOf(typeof(INPUT)));
+                SetCursorPos(tx, ty);
+            }
+        }
+
         private static void GhostClick(int tx, int ty, string btn)
         {
             POINT orig;
             GetCursorPos(out orig);
 
-            SetCursorPos(tx, ty);
+            MoveCursorExact(tx, ty);
             System.Threading.Thread.Sleep(6);
             FireClick(btn);
             System.Threading.Thread.Sleep(6);
-            SetCursorPos(orig.X, orig.Y);
+            MoveCursorExact(orig.X, orig.Y);
         }
 
         private static void GhostDoubleClick(int tx, int ty)
@@ -711,13 +766,13 @@ namespace ShowSecondScreens.Input
             POINT orig;
             GetCursorPos(out orig);
 
-            SetCursorPos(tx, ty);
+            MoveCursorExact(tx, ty);
             System.Threading.Thread.Sleep(6);
             FireClick("left");
             System.Threading.Thread.Sleep(20);
             FireClick("left");
             System.Threading.Thread.Sleep(6);
-            SetCursorPos(orig.X, orig.Y);
+            MoveCursorExact(orig.X, orig.Y);
         }
 
         private static void GhostWheel(int tx, int ty, int delta)
@@ -725,11 +780,11 @@ namespace ShowSecondScreens.Input
             POINT orig;
             GetCursorPos(out orig);
 
-            SetCursorPos(tx, ty);
+            MoveCursorExact(tx, ty);
             System.Threading.Thread.Sleep(4);
             FireWheel(delta);
             System.Threading.Thread.Sleep(4);
-            SetCursorPos(orig.X, orig.Y);
+            MoveCursorExact(orig.X, orig.Y);
         }
 
         private static void SendMouseFlag(uint flag, uint mouseData = 0)

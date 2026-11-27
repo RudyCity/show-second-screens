@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.10.1] - 2026-11-27
+
+### Fixed
+- **Multi-Monitor (>2 Screens) Coordinate & Display Correlation**:
+  - Replaced fragile `DISPLAY<N>` regex and array-index monitor fallback in `src/main/capture/displayService.cjs` (`correlateWindowsDisplays`) with exact `source.display_id` -> Electron Display -> Win32 `EnumDisplayMonitors` physical bounds/center geometry matching and duplicate-monitor guards, preventing Display 3/4+ clicks from landing on Display 2 when Windows device names are non-sequential (e.g. `DISPLAY10`, `DISPLAY15`) or enumerated in a different order.
+  - Added `MoveCursorExact` in `src/main/input/injector.cs` with `GetCursorPos` verification, mixed-DPI retry, and `SendInput` `MOUSEEVENTF_VIRTUALDESK` fallback so cursor positioning across 3+ monitors and mixed-DPI boundaries never clamps to an intermediate display; rebuilt `bin/injector.exe`.
+
+### Tests
+- Added `tests/display-multimonitor.test.cjs` covering 4-monitor Windows correlation with non-sequential `DISPLAY<N>` names, scrambled enumeration order, mixed DPI, negative coordinates, and duplicate-prevention fallback.
+
+---
+
 ## [0.10.0] - 2026-11-19
 
 ### Added

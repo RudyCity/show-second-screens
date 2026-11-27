@@ -1,6 +1,6 @@
 {
   "name": "show-second-screens",
-  "version": "0.10.0",
+  "version": "0.10.1",
   "description": "Interactive real-time preview and remote control window for target displays with accurate coordinate mapping, moving, and resizing.",
   "homepage": "https://github.com/RudyCity/show-second-screens",
   "repository": {
